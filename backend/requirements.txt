@@ -1,0 +1,13 @@
+# API Framework
+fastapi==0.115.0
+uvicorn[standard]==0.32.0
+
+# Data validation
+pydantic==2.10.0
+
+# FIT file parsing
+fitparse==1.2.0
+
+# Testing
+pytest==8.3.0
+httpx==0.28.0

@@ -1,0 +1,17 @@
+version: "3.8"
+
+services:
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount backend source for hot-reloading
+      - ./backend/app:/app
+      # Mount FIT files directory (read-only)
+      # Update this path to your actual FIT files location
+      - /Users/tristanokeefe/running-coach/data/fit-files:/data/fit-files:ro
+    environment:
+      - FIT_FILES_PATH=/data/fit-files
+    container_name: running_coach_api
