@@ -8,6 +8,9 @@ pydantic==2.10.0
 # FIT file parsing
 fitparse==1.2.0
 
+# Garmin Connect API
+garminconnect==0.2.25
+
 # Testing
 pytest==8.3.0
 httpx==0.28.0

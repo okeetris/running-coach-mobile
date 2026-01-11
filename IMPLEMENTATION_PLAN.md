@@ -8,8 +8,8 @@
 
 ## Current Progress
 
-**Phase 1: Infrastructure** - COMPLETE (Milestone M1 achieved)
-**Phase 2: Data Layer** - NEXT
+**Phase 1: Infrastructure** - COMPLETE
+**Phase 2: Data Layer** - IN PROGRESS
 
 ### Phase 1 Summary (Complete)
 - [x] Monorepo structure created
@@ -21,11 +21,27 @@
 - [x] API service files (apiConfig.ts, api.ts, types/index.ts)
 - [x] **MILESTONE M1: App connected to backend!**
 
-### Next Steps (Phase 2)
-- [ ] Create `/activities` endpoint in backend
-- [ ] Create `useActivities` hook with TanStack Query
-- [ ] Build activity list screen with FlashList
-- [ ] **MILESTONE M2:** Activity list shows real FIT file names
+### Phase 2 Progress
+- [x] Added `garminconnect` to backend
+- [x] Created Garmin sync service (`services/garmin_sync.py`)
+- [x] Created `/activities` and `/activities/sync` endpoints
+- [x] Created `useActivities` and `useSyncActivities` hooks
+- [x] Built activity list screen with FlashList
+- [x] Added sync-on-open and pull-to-refresh
+- [ ] **MILESTONE M2:** Test sync with real Garmin data
+
+### To Test Phase 2
+```bash
+# Terminal 1: Rebuild backend (new dependencies)
+cd /Users/tristanokeefe/running-coach-mobile
+docker-compose down
+docker-compose up --build
+
+# Terminal 2: Reload app (code already hot-reloads)
+# Or rebuild if needed:
+cd /Users/tristanokeefe/running-coach-mobile/mobile
+npx expo run:android
+```
 
 ### Quick Commands
 ```bash

@@ -9,11 +9,16 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from routers import activities
+
 app = FastAPI(
     title="Running Coach API",
     description="Biomechanics analysis for running activities",
     version="1.0.0",
 )
+
+# Include routers
+app.include_router(activities.router)
 
 # CORS configuration for local development
 app.add_middleware(

@@ -1,76 +1,142 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { StatusBar } from "expo-status-bar";
-import { StyleSheet, Text, View, ActivityIndicator } from "react-native";
-import { checkHealth } from "./src/services/api";
-import { API_BASE_URL } from "./src/services/apiConfig";
-import type { HealthCheck } from "./src/types";
+import {
+  StyleSheet,
+  Text,
+  View,
+  RefreshControl,
+  Pressable,
+  ActivityIndicator,
+} from "react-native";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { FlashList } from "@shopify/flash-list";
+
+import { useActivities, useSyncActivities } from "./src/hooks/useActivities";
+import { ActivityCard } from "./src/components/activity/ActivityCard";
+import type { ActivitySummary } from "./src/types";
+
+// Create QueryClient instance
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 2,
+      staleTime: 5 * 60 * 1000,
+    },
+  },
+});
 
 /**
- * Initial App - Tests connection to backend
- * This will be replaced with proper navigation setup
+ * Main activities screen with sync-on-open.
  */
-export default function App() {
-  const [health, setHealth] = useState<HealthCheck | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+function ActivitiesScreen() {
+  const { data: activities, isLoading, error, refetch } = useActivities();
+  const syncMutation = useSyncActivities();
 
+  // Sync on first mount
   useEffect(() => {
-    async function testConnection() {
-      try {
-        const result = await checkHealth();
-        setHealth(result);
-        setError(null);
-      } catch (err) {
-        setError((err as Error).message);
-        setHealth(null);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    testConnection();
+    syncMutation.mutate(10);
   }, []);
+
+  const handleRefresh = () => {
+    syncMutation.mutate(10);
+  };
+
+  const handleActivityPress = (activity: ActivitySummary) => {
+    // TODO: Navigate to activity detail
+    console.log("Activity pressed:", activity.id);
+  };
+
+  const isRefreshing = syncMutation.isPending;
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Running Coach</Text>
-      <Text style={styles.subtitle}>Backend Connection Test</Text>
-
-      <View style={styles.card}>
-        <Text style={styles.label}>API URL:</Text>
-        <Text style={styles.value}>{API_BASE_URL}</Text>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.title}>Running Coach</Text>
+        <Pressable
+          style={styles.syncButton}
+          onPress={handleRefresh}
+          disabled={isRefreshing}
+        >
+          {isRefreshing ? (
+            <ActivityIndicator size="small" color="#1976D2" />
+          ) : (
+            <Text style={styles.syncButtonText}>Sync</Text>
+          )}
+        </Pressable>
       </View>
 
-      {loading && (
-        <View style={styles.card}>
+      {/* Sync status */}
+      {syncMutation.isPending && (
+        <View style={styles.syncStatus}>
+          <ActivityIndicator size="small" color="#1976D2" />
+          <Text style={styles.syncStatusText}>Syncing with Garmin...</Text>
+        </View>
+      )}
+
+      {syncMutation.isError && (
+        <View style={[styles.syncStatus, styles.syncError]}>
+          <Text style={styles.errorText}>
+            Sync failed: {syncMutation.error.message}
+          </Text>
+        </View>
+      )}
+
+      {syncMutation.isSuccess && !syncMutation.isPending && (
+        <View style={[styles.syncStatus, styles.syncSuccess]}>
+          <Text style={styles.successText}>
+            {syncMutation.data.message}
+          </Text>
+        </View>
+      )}
+
+      {/* Loading state */}
+      {isLoading && !activities && (
+        <View style={styles.centered}>
           <ActivityIndicator size="large" color="#1976D2" />
-          <Text style={styles.statusText}>Connecting to backend...</Text>
+          <Text style={styles.loadingText}>Loading activities...</Text>
         </View>
       )}
 
-      {health && (
-        <View style={[styles.card, styles.successCard]}>
-          <Text style={styles.successText}>Connected!</Text>
-          <Text style={styles.label}>Status: {health.status}</Text>
-          <Text style={styles.label}>
-            FIT Files Path: {health.fit_files_path}
-          </Text>
-          <Text style={styles.label}>
-            Files Accessible: {health.fit_files_accessible ? "Yes" : "No"}
-          </Text>
+      {/* Error state */}
+      {error && !activities && (
+        <View style={styles.centered}>
+          <Text style={styles.errorText}>Failed to load activities</Text>
+          <Text style={styles.errorDetail}>{error.message}</Text>
+          <Pressable style={styles.retryButton} onPress={() => refetch()}>
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </Pressable>
         </View>
       )}
 
-      {error && (
-        <View style={[styles.card, styles.errorCard]}>
-          <Text style={styles.errorText}>Connection Failed</Text>
-          <Text style={styles.errorDetail}>{error}</Text>
-          <Text style={styles.hint}>
-            Make sure the backend is running:{"\n"}
-            cd running-coach-mobile{"\n"}
-            docker-compose up --build
-          </Text>
-        </View>
+      {/* Activities list */}
+      {activities && (
+        <FlashList
+          data={activities}
+          renderItem={({ item }) => (
+            <ActivityCard
+              activity={item}
+              onPress={() => handleActivityPress(item)}
+            />
+          )}
+          estimatedItemSize={120}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={handleRefresh}
+              colors={["#1976D2"]}
+            />
+          }
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Text style={styles.emptyText}>No activities found</Text>
+              <Text style={styles.emptyHint}>
+                Pull down to sync with Garmin
+              </Text>
+            </View>
+          }
+          contentContainerStyle={styles.listContent}
+        />
       )}
 
       <StatusBar style="auto" />
@@ -78,84 +144,121 @@ export default function App() {
   );
 }
 
+/**
+ * App root with QueryClientProvider.
+ */
+export default function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ActivitiesScreen />
+    </QueryClientProvider>
+  );
+}
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#FAFAFA",
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    justifyContent: "center",
-    padding: 24,
+    paddingHorizontal: 16,
+    paddingTop: 60,
+    paddingBottom: 16,
+    backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E0E0E0",
   },
   title: {
     fontSize: 28,
     fontWeight: "bold",
     color: "#1C1B1F",
-    marginBottom: 8,
   },
-  subtitle: {
-    fontSize: 16,
-    color: "#49454F",
-    marginBottom: 32,
+  syncButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: "#E3F2FD",
+    borderRadius: 20,
+    minWidth: 60,
+    alignItems: "center",
   },
-  card: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    padding: 16,
-    width: "100%",
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  successCard: {
-    borderLeftWidth: 4,
-    borderLeftColor: "#4CAF50",
-  },
-  errorCard: {
-    borderLeftWidth: 4,
-    borderLeftColor: "#F44336",
-  },
-  label: {
-    fontSize: 14,
-    color: "#49454F",
-    marginBottom: 4,
-  },
-  value: {
-    fontSize: 14,
-    color: "#1C1B1F",
-    fontFamily: "monospace",
-  },
-  statusText: {
-    fontSize: 14,
-    color: "#49454F",
-    marginTop: 12,
-    textAlign: "center",
-  },
-  successText: {
-    fontSize: 18,
+  syncButtonText: {
+    color: "#1976D2",
     fontWeight: "600",
-    color: "#4CAF50",
-    marginBottom: 12,
+  },
+  syncStatus: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 12,
+    backgroundColor: "#E3F2FD",
+    gap: 8,
+  },
+  syncStatusText: {
+    color: "#1976D2",
+    fontSize: 14,
+  },
+  syncError: {
+    backgroundColor: "#FFEBEE",
+  },
+  syncSuccess: {
+    backgroundColor: "#E8F5E9",
   },
   errorText: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#F44336",
-    marginBottom: 8,
+    color: "#D32F2F",
+    fontSize: 14,
+  },
+  successText: {
+    color: "#388E3C",
+    fontSize: 14,
+  },
+  centered: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: "#49454F",
   },
   errorDetail: {
+    marginTop: 8,
     fontSize: 14,
-    color: "#1C1B1F",
-    marginBottom: 12,
-  },
-  hint: {
-    fontSize: 12,
     color: "#49454F",
-    fontFamily: "monospace",
-    backgroundColor: "#F5F5F5",
-    padding: 12,
-    borderRadius: 8,
+    textAlign: "center",
+  },
+  retryButton: {
+    marginTop: 16,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    backgroundColor: "#1976D2",
+    borderRadius: 24,
+  },
+  retryButtonText: {
+    color: "#FFFFFF",
+    fontWeight: "600",
+  },
+  listContent: {
+    paddingVertical: 8,
+  },
+  empty: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 48,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#49454F",
+  },
+  emptyHint: {
+    marginTop: 8,
+    fontSize: 14,
+    color: "#757575",
   },
 });

@@ -9,9 +9,11 @@ services:
     volumes:
       # Mount backend source for hot-reloading
       - ./backend/app:/app
-      # Mount FIT files directory (read-only)
-      # Update this path to your actual FIT files location
-      - /Users/tristanokeefe/running-coach/data/fit-files:/data/fit-files:ro
+      # Mount FIT files directory
+      - /Users/tristanokeefe/running-coach/data/fit-files:/data/fit-files
+      # Mount Garmin credentials (read-only)
+      - /Users/tristanokeefe/running-coach/.garmin:/data/garmin:ro
     environment:
       - FIT_FILES_PATH=/data/fit-files
+      - GARMIN_CONFIG_PATH=/data/garmin/config.json
     container_name: running_coach_api
