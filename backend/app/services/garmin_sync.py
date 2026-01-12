@@ -218,7 +218,8 @@ class GarminSyncService:
     def get_recent_activities(self, limit: int = 20) -> list[dict]:
         """Fetch recent activities from Garmin Connect."""
         client = self._get_client()
-        activities = client.get_activities(0, limit)
+        # Fetch more activities to account for filtering (3x requested to ensure enough running activities)
+        activities = client.get_activities(0, limit * 3)
 
         # Filter to running activities (outdoor, treadmill, trail, track, etc.)
         running_types = {"running", "treadmill_running", "trail_running", "track_running"}
@@ -227,7 +228,7 @@ class GarminSyncService:
             if a.get("activityType", {}).get("typeKey") in running_types
         ]
 
-        return running_activities
+        return running_activities[:limit]
 
     def download_activity_fit(self, activity_id: int) -> Path:
         """Download FIT file for an activity if not already cached."""
