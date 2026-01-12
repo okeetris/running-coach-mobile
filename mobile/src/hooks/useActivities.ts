@@ -120,9 +120,14 @@ export function useSyncActivities() {
   return useMutation({
     mutationFn: (count: number = 10) => syncActivities(count),
     onSuccess: (data) => {
-      // Only invalidate if actual sync happened (not MFA required)
+      // Only update cache if actual sync happened (not MFA required)
       if (!isMFARequired(data)) {
-        queryClient.invalidateQueries({ queryKey: ["activities"] });
+        // Directly set the activities cache with sync response
+        // (Render free tier has ephemeral storage, so GET /activities returns empty)
+        const syncData = data as SyncResponse;
+        if (syncData.activities && syncData.activities.length > 0) {
+          queryClient.setQueryData(["activities"], syncData.activities);
+        }
       }
     },
   });
