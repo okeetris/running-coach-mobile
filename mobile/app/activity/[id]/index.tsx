@@ -1,12 +1,13 @@
 /**
  * Summary Tab
  *
- * Shows key metrics, grades, at-a-glance, and fatigue comparison.
+ * Shows key metrics, grades, at-a-glance, and workout compliance.
  */
 
 import { View, Text, StyleSheet, ScrollView } from "react-native";
 import { useActivity } from "../../../src/contexts/ActivityContext";
-import type { Grade, GradeValue, FatigueComparison } from "../../../src/types";
+import { WorkoutComplianceCard } from "../../../src/components/activity/WorkoutComplianceCard";
+import type { Grade, GradeValue } from "../../../src/types";
 
 function formatDuration(seconds: number): string {
   const hrs = Math.floor(seconds / 3600);
@@ -63,32 +64,12 @@ function MetricCard({
   );
 }
 
-function FatigueCard({ item }: { item: FatigueComparison }) {
-  const isGood = item.changeDirection === "improved" || item.changeDirection === "stable";
-  const changeColor = isGood ? "#4CAF50" : "#F44336";
-  const arrow = item.change > 0 ? "↑" : item.change < 0 ? "↓" : "→";
-
-  return (
-    <View style={styles.fatigueCard}>
-      <Text style={styles.fatigueMetric}>{item.metric}</Text>
-      <View style={styles.fatigueRow}>
-        <Text style={styles.fatigueValue}>{item.firstHalf.toFixed(1)}</Text>
-        <Text style={styles.fatigueArrow}>→</Text>
-        <Text style={styles.fatigueValue}>{item.secondHalf.toFixed(1)}</Text>
-        <Text style={[styles.fatigueChange, { color: changeColor }]}>
-          {arrow} {Math.abs(item.change).toFixed(1)}%
-        </Text>
-      </View>
-    </View>
-  );
-}
-
 export default function SummaryTab() {
   const { activity } = useActivity();
 
   if (!activity) return null;
 
-  const { summaryMetrics, coaching, fatigueComparison } = activity;
+  const { summaryMetrics, coaching, workoutCompliance } = activity;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -146,15 +127,11 @@ export default function SummaryTab() {
         />
       </View>
 
-      {/* Fatigue Comparison */}
-      {fatigueComparison && fatigueComparison.length > 0 && (
+      {/* Workout Compliance */}
+      {workoutCompliance && (
         <>
-          <Text style={styles.sectionTitle}>First Half vs Second Half</Text>
-          <View style={styles.fatigueContainer}>
-            {fatigueComparison.map((item, index) => (
-              <FatigueCard key={index} item={item} />
-            ))}
-          </View>
+          <Text style={styles.sectionTitle}>Workout Compliance</Text>
+          <WorkoutComplianceCard compliance={workoutCompliance} defaultExpanded />
         </>
       )}
     </ScrollView>
@@ -262,45 +239,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "bold",
     color: "#FFFFFF",
-  },
-  fatigueContainer: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    padding: 16,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  fatigueCard: {
-    marginBottom: 12,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
-  },
-  fatigueMetric: {
-    fontSize: 12,
-    color: "#49454F",
-    marginBottom: 4,
-  },
-  fatigueRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  fatigueValue: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#1C1B1F",
-  },
-  fatigueArrow: {
-    fontSize: 14,
-    color: "#49454F",
-  },
-  fatigueChange: {
-    marginLeft: "auto",
-    fontSize: 14,
-    fontWeight: "600",
   },
 });

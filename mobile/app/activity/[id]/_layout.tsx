@@ -75,6 +75,7 @@ export default function ActivityDetailLayout() {
             tabBarActiveTintColor: "#1976D2",
             tabBarInactiveTintColor: "#757575",
             tabBarLabelStyle: styles.tabLabel,
+            tabBarIcon: () => null,
           }}
         >
           <Tabs.Screen

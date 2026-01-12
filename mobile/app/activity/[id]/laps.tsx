@@ -1,12 +1,11 @@
 /**
  * Laps Tab
  *
- * Shows workout compliance and lap-by-lap breakdown.
+ * Shows lap-by-lap breakdown.
  */
 
 import { View, Text, StyleSheet, ScrollView } from "react-native";
 import { useActivity } from "../../../src/contexts/ActivityContext";
-import { WorkoutComplianceCard } from "../../../src/components/activity/WorkoutComplianceCard";
 import type { Lap } from "../../../src/types";
 
 function formatPace(secPerKm: number): string {
@@ -80,10 +79,9 @@ export default function LapsTab() {
 
   if (!activity) return null;
 
-  const { workoutCompliance, laps } = activity;
-  const hasContent = workoutCompliance || (laps && laps.length > 0);
+  const { laps } = activity;
 
-  if (!hasContent) {
+  if (!laps || laps.length === 0) {
     return (
       <View style={styles.emptyContainer}>
         <Text style={styles.emptyText}>No lap data available</Text>
@@ -93,31 +91,18 @@ export default function LapsTab() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Workout Compliance */}
-      {workoutCompliance && (
-        <>
-          <Text style={styles.sectionTitle}>Workout Compliance</Text>
-          <WorkoutComplianceCard compliance={workoutCompliance} defaultExpanded />
-        </>
-      )}
-
-      {/* Lap Breakdown */}
-      {laps && laps.length > 0 && (
-        <>
-          <Text style={styles.sectionTitle}>Lap Breakdown</Text>
-          <View style={styles.lapsContainer}>
-            <View style={styles.lapsHeader}>
-              <Text style={styles.headerLabel}>Lap</Text>
-              <Text style={[styles.headerLabel, styles.headerPace]}>Pace</Text>
-              <Text style={[styles.headerLabel, styles.headerDist]}>Dist</Text>
-              <Text style={[styles.headerLabel, styles.headerTime]}>Time</Text>
-            </View>
-            {laps.map((lap) => (
-              <LapRow key={lap.lapNumber} lap={lap} />
-            ))}
-          </View>
-        </>
-      )}
+      <Text style={styles.sectionTitle}>Lap Breakdown</Text>
+      <View style={styles.lapsContainer}>
+        <View style={styles.lapsHeader}>
+          <Text style={styles.headerLabel}>Lap</Text>
+          <Text style={[styles.headerLabel, styles.headerPace]}>Pace</Text>
+          <Text style={[styles.headerLabel, styles.headerDist]}>Dist</Text>
+          <Text style={[styles.headerLabel, styles.headerTime]}>Time</Text>
+        </View>
+        {laps.map((lap) => (
+          <LapRow key={lap.lapNumber} lap={lap} />
+        ))}
+      </View>
     </ScrollView>
   );
 }
