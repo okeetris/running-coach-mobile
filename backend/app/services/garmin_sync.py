@@ -38,15 +38,26 @@ class GarminSyncService:
         self.fit_files_path = Path(
             os.environ.get("FIT_FILES_PATH", "/data/fit-files")
         )
+        # Ensure FIT files directory exists
+        self.fit_files_path.mkdir(parents=True, exist_ok=True)
+
         self.garmin: Optional[Garmin] = None
         self._mfa_token: Optional[str] = None  # Stored when MFA is needed
 
     def _load_credentials(self) -> dict:
-        """Load Garmin credentials from config file."""
+        """Load Garmin credentials from env vars or config file."""
+        # First try environment variables (for cloud deployment)
+        email = os.environ.get("GARMIN_EMAIL")
+        password = os.environ.get("GARMIN_PASSWORD")
+
+        if email and password:
+            return {"email": email, "password": password}
+
+        # Fall back to config file (for local development)
         if not os.path.exists(self.config_path):
             raise FileNotFoundError(
-                f"Garmin config not found at {self.config_path}. "
-                "Create .garmin/config.json with email and password."
+                f"Garmin credentials not found. Set GARMIN_EMAIL and GARMIN_PASSWORD "
+                f"env vars, or create config at {self.config_path}."
             )
 
         with open(self.config_path) as f:

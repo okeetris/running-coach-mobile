@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: atlas-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    envVars:
+      - key: GARMIN_EMAIL
+        sync: false  # Set manually in Render dashboard
+      - key: GARMIN_PASSWORD
+        sync: false  # Set manually in Render dashboard
+      - key: FIT_FILES_PATH
+        value: /tmp/fit-files
+    healthCheckPath: /health
+    plan: free
