@@ -7,6 +7,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { API_BASE_URL, API_ENDPOINTS } from "../services/apiConfig";
+import { getAuthHeader, updateTokensIfRefreshed } from "../services/authService";
 import type { ActivitySummary, ActivityDetails, MFARequiredResponse, MFASubmitResponse } from "../types";
 
 interface SyncResponse {
@@ -26,7 +27,13 @@ function isMFARequired(response: SyncResult): response is MFARequiredResponse {
  * Fetch activities list from backend.
  */
 async function fetchActivities(): Promise<ActivitySummary[]> {
-  const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.activities}`);
+  const headers: Record<string, string> = {};
+  const authHeader = await getAuthHeader();
+  if (authHeader) {
+    headers["Authorization"] = authHeader;
+  }
+
+  const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.activities}`, { headers });
   if (!response.ok) {
     throw new Error(`Failed to fetch activities: ${response.statusText}`);
   }
@@ -38,10 +45,22 @@ async function fetchActivities(): Promise<ActivitySummary[]> {
  * May return MFA required response instead of sync data.
  */
 async function syncActivities(count: number = 10): Promise<SyncResult> {
+  const headers: Record<string, string> = {};
+
+  // Include auth token if available
+  const authHeader = await getAuthHeader();
+  if (authHeader) {
+    headers["Authorization"] = authHeader;
+  }
+
   const response = await fetch(
     `${API_BASE_URL}${API_ENDPOINTS.activities}/sync?count=${count}`,
-    { method: "POST" }
+    { method: "POST", headers }
   );
+
+  // Check for refreshed tokens
+  await updateTokensIfRefreshed(response);
+
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.detail || "Failed to sync activities");
