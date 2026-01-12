@@ -27,13 +27,11 @@ import type { ActivitySummary } from "../../src/types";
 
 export default function ActivitiesScreen() {
   const router = useRouter();
-  const { data: activities, isLoading, isFetching, error, refetch } = useActivities();
+  const { data: activities, isLoading, error, refetch } = useActivities();
   const syncMutation = useSyncActivities();
   const mfaMutation = useSubmitMFA();
   const [showMFAModal, setShowMFAModal] = useState(false);
   const [mfaError, setMfaError] = useState<string | null>(null);
-
-  console.log("[ActivitiesScreen] activities:", activities?.length, "loading:", isLoading, "fetching:", isFetching);
 
   // Check if sync result requires MFA
   useEffect(() => {
