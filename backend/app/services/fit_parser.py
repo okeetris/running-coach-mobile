@@ -111,9 +111,11 @@ def extract_session_summary(fitfile: FitFile) -> dict:
 
         if data.get("start_time"):
             start = data["start_time"]
-            summary["startTime"] = (
-                start.isoformat() if isinstance(start, datetime) else str(start)
-            )
+            # FIT timestamps are UTC - append Z so JS converts to local time
+            if isinstance(start, datetime):
+                summary["startTime"] = start.isoformat() + "Z"
+            else:
+                summary["startTime"] = str(start)
 
         summary["totalDistance"] = data.get("total_distance", 0)
         summary["totalDuration"] = data.get("total_elapsed_time", 0)

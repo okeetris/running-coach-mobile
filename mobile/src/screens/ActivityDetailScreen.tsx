@@ -16,7 +16,8 @@ import {
 } from "react-native";
 import { useActivityDetails } from "../hooks/useActivities";
 import { InteractiveRunChart } from "../components/charts/InteractiveRunChart";
-import type { Grade, GradeValue, FatigueComparison, TimeSeriesDataPoint, WorkoutCompliance, StepCompliance } from "../types";
+import { WorkoutComplianceCard } from "../components/activity/WorkoutComplianceCard";
+import type { Grade, GradeValue, FatigueComparison, TimeSeriesDataPoint } from "../types";
 
 interface Props {
   activityId: string;
@@ -104,83 +105,6 @@ function FatigueCard({ item }: { item: FatigueComparison }) {
         <Text style={[styles.fatigueChange, { color: changeColor }]}>
           {arrow} {Math.abs(item.change).toFixed(1)}%
         </Text>
-      </View>
-    </View>
-  );
-}
-
-function WorkoutComplianceCard({ compliance }: { compliance: WorkoutCompliance }) {
-  const statusIcon = (status: string) => {
-    switch (status) {
-      case "hit": return "✓";
-      case "partial": return "~";
-      case "fast": return "↑";  // Ran faster than target
-      case "missed": return "✗";
-      default: return "-";
-    }
-  };
-
-  const statusColor = (status: string) => {
-    switch (status) {
-      case "hit": return "#4CAF50";
-      case "partial": return "#FFC107";
-      case "fast": return "#2196F3";  // Blue for faster (not necessarily bad)
-      case "missed": return "#F44336";
-      default: return "#9E9E9E";
-    }
-  };
-
-  // Compliance percent color based on value
-  const complianceColor = compliance.compliancePercent >= 80 ? "#4CAF50"
-    : compliance.compliancePercent >= 50 ? "#FFC107"
-    : "#F44336";
-
-  return (
-    <View style={styles.complianceCard}>
-      <View style={styles.complianceHeader}>
-        <Text style={styles.complianceTitle}>{compliance.workoutName}</Text>
-        <View style={[styles.compliancePercent, { backgroundColor: complianceColor + "20" }]}>
-          <Text style={[styles.compliancePercentText, { color: complianceColor }]}>
-            {compliance.compliancePercent}%
-          </Text>
-        </View>
-      </View>
-      {compliance.workoutDescription && (
-        <Text style={styles.complianceDescription}>{compliance.workoutDescription}</Text>
-      )}
-      <View style={styles.complianceSummary}>
-        <Text style={styles.complianceSummaryText}>
-          {compliance.stepsHit} hit · {compliance.stepsPartial} partial · {compliance.stepsMissed} missed · {compliance.totalSteps} total
-        </Text>
-      </View>
-      <View style={styles.stepBreakdown}>
-        {compliance.stepBreakdown.map((step, index) => (
-          <View key={index} style={styles.stepRow}>
-            <Text style={[styles.stepStatus, { color: statusColor(step.status) }]}>
-              {statusIcon(step.status)}
-            </Text>
-            <View style={styles.stepInfo}>
-              <View style={styles.stepMainRow}>
-                <Text style={styles.stepType}>{step.stepType}</Text>
-                {step.actualPace && (
-                  <Text style={styles.stepPace}>{step.actualPace}/km</Text>
-                )}
-              </View>
-              <View style={styles.stepDetailsRow}>
-                {step.targetPaceRange && (
-                  <Text style={styles.stepTarget}>
-                    target: {step.targetPaceRange.fast}-{step.targetPaceRange.slow}
-                  </Text>
-                )}
-                {step.lapsUsed && step.lapsUsed.length > 0 && (
-                  <Text style={styles.stepLaps}>
-                    laps {step.lapsUsed.join(", ")}
-                  </Text>
-                )}
-              </View>
-            </View>
-          </View>
-        ))}
       </View>
     </View>
   );
@@ -698,103 +622,5 @@ const styles = StyleSheet.create({
     marginLeft: "auto",
     fontSize: 14,
     fontWeight: "600",
-  },
-  complianceCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 24,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  complianceHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  complianceTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#1C1B1F",
-    flex: 1,
-  },
-  compliancePercent: {
-    backgroundColor: "#E8F5E9",
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  compliancePercentText: {
-    fontSize: 14,
-    fontWeight: "bold",
-    color: "#4CAF50",
-  },
-  complianceDescription: {
-    fontSize: 13,
-    color: "#49454F",
-    marginBottom: 8,
-  },
-  complianceSummary: {
-    marginBottom: 12,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
-  },
-  complianceSummaryText: {
-    fontSize: 12,
-    color: "#9E9E9E",
-  },
-  stepBreakdown: {
-    gap: 8,
-  },
-  stepRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 8,
-    paddingVertical: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
-  },
-  stepStatus: {
-    fontSize: 16,
-    fontWeight: "bold",
-    width: 20,
-    marginTop: 2,
-  },
-  stepInfo: {
-    flex: 1,
-  },
-  stepMainRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  stepDetailsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    marginTop: 2,
-  },
-  stepType: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#1C1B1F",
-  },
-  stepPace: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#1976D2",
-  },
-  stepTarget: {
-    fontSize: 12,
-    color: "#9E9E9E",
-  },
-  stepLaps: {
-    fontSize: 11,
-    color: "#BDBDBD",
   },
 });
