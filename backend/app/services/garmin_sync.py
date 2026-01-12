@@ -7,10 +7,14 @@ Supports MFA (Multi-Factor Authentication) flow.
 Fetches scheduled workouts for compliance tracking.
 """
 
+import base64
 import json
 import os
+import tarfile
+import tempfile
 import zipfile
 from datetime import datetime
+from io import BytesIO
 from pathlib import Path
 from typing import Optional
 
@@ -28,7 +32,14 @@ class MFARequiredError(Exception):
 class GarminSyncService:
     """Service for syncing activities from Garmin Connect."""
 
-    def __init__(self):
+    def __init__(self, client_tokens: Optional[dict] = None):
+        """
+        Initialize service.
+
+        Args:
+            client_tokens: Optional dict with oauth1/oauth2 tokens from client.
+                          If provided, uses these instead of server-side auth.
+        """
         self.config_path = os.environ.get(
             "GARMIN_CONFIG_PATH", "/data/garmin/config.json"
         )
@@ -43,6 +54,8 @@ class GarminSyncService:
 
         self.garmin: Optional[Garmin] = None
         self._mfa_token: Optional[str] = None  # Stored when MFA is needed
+        self._client_tokens = client_tokens
+        self._initial_oauth2_token: Optional[str] = None  # Track for refresh detection
 
     def _load_credentials(self) -> dict:
         """Load Garmin credentials from env vars or config file."""
@@ -70,6 +83,22 @@ class GarminSyncService:
 
     def _try_load_tokens(self) -> bool:
         """Try to load saved session tokens. Returns True if successful."""
+        # First try GARMIN_TOKENS env var (base64 encoded tar.gz of token files)
+        tokens_b64 = os.environ.get("GARMIN_TOKENS")
+        if tokens_b64:
+            try:
+                # Decode base64 and extract to temp directory
+                tokens_data = base64.b64decode(tokens_b64)
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    with tarfile.open(fileobj=BytesIO(tokens_data), mode="r:gz") as tar:
+                        tar.extractall(tmpdir)
+                    self.garmin.garth.load(tmpdir)
+                    print("Loaded tokens from GARMIN_TOKENS env var")
+                    return True
+            except Exception as e:
+                print(f"Failed to load tokens from env var: {e}")
+
+        # Fall back to file-based tokens
         if not os.path.exists(self.token_path):
             return False
         try:
@@ -86,9 +115,59 @@ class GarminSyncService:
         except Exception as e:
             print(f"Warning: Failed to save tokens: {e}")
 
+    def _get_client_from_tokens(self) -> Garmin:
+        """Create Garmin client from client-provided token directory."""
+        if not self._client_tokens:
+            raise ValueError("No client tokens provided")
+
+        # _client_tokens is now a path to a temp directory with token files
+        token_dir = self._client_tokens
+
+        # Create Garmin instance without credentials (we have tokens)
+        garmin = Garmin()
+
+        # Load tokens using garth's native load
+        garmin.garth.load(token_dir)
+
+        # Store initial access token to detect refreshes
+        try:
+            with open(f"{token_dir}/oauth2_token.json") as f:
+                oauth2_data = json.load(f)
+                self._initial_oauth2_token = oauth2_data.get("access_token")
+        except Exception:
+            self._initial_oauth2_token = None
+
+        return garmin
+
+    def get_refreshed_tokens(self) -> Optional[str]:
+        """
+        Check if tokens were refreshed and return new encoded tokens if so.
+
+        Returns base64-encoded tar.gz of token files, or None if not refreshed.
+        """
+        if not self.garmin or not self._initial_oauth2_token:
+            return None
+
+        # Get current access token from garth
+        try:
+            current_token = self.garmin.garth.oauth2_token.access_token
+        except Exception:
+            return None
+
+        if current_token and current_token != self._initial_oauth2_token:
+            # Token was refreshed, return new encoded tokens
+            from dependencies.auth import encode_tokens_from_garth
+            return encode_tokens_from_garth(self.garmin.garth)
+        return None
+
     def _get_client(self) -> Garmin:
         """Get authenticated Garmin client with MFA support."""
         if self.garmin is not None:
+            return self.garmin
+
+        # If client tokens provided, use those
+        if self._client_tokens:
+            self.garmin = self._get_client_from_tokens()
             return self.garmin
 
         creds = self._load_credentials()
@@ -392,12 +471,22 @@ class GarminSyncService:
         return synced
 
 
-# Singleton instance
+# Singleton instance (for server-side auth only)
 _service: Optional[GarminSyncService] = None
 
 
-def get_garmin_service() -> GarminSyncService:
-    """Get singleton GarminSyncService instance."""
+def get_garmin_service(client_tokens: Optional[dict] = None) -> GarminSyncService:
+    """
+    Get GarminSyncService instance.
+
+    If client_tokens provided, creates new instance using those tokens.
+    Otherwise, returns singleton instance for server-side auth.
+    """
+    if client_tokens:
+        # Create new instance with client tokens (no singleton)
+        return GarminSyncService(client_tokens=client_tokens)
+
+    # Use singleton for server-side auth
     global _service
     if _service is None:
         _service = GarminSyncService()

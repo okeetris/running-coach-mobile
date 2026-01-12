@@ -13,9 +13,8 @@ import { Platform } from "react-native";
 // Set to true to use the deployed Render backend
 const USE_PRODUCTION = false;
 
-// Your Render URL (set after deploying)
-// Will look like: https://atlas-api.onrender.com
-const PRODUCTION_URL = "https://atlas-api.onrender.com";
+// Your Render URL
+const PRODUCTION_URL = "https://running-coach-mobile.onrender.com";
 
 // === LOCAL DEVELOPMENT CONFIG ===
 // Set to true when testing on a physical device over local network

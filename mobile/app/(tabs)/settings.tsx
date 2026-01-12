@@ -18,8 +18,8 @@ import {
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
-import { checkHealth } from "../../src/services/api";
-import { API_BASE_URL, API_ENDPOINTS } from "../../src/services/apiConfig";
+import { checkHealth, syncActivities, isMFARequired } from "../../src/services/api";
+import { useAuth } from "../../src/contexts/AuthContext";
 
 // Storage keys
 const STORAGE_KEYS = {
@@ -42,10 +42,11 @@ interface MFAResponse {
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const { isLoggedIn, logout, isLoading: authLoading } = useAuth();
   const [units, setUnits] = useState<Units>("metric");
   const [darkMode, setDarkMode] = useState(false);
   const [lastSync, setLastSync] = useState<string | null>(null);
-  const [isConnected, setIsConnected] = useState<boolean | null>(null);
+  const [isBackendConnected, setIsBackendConnected] = useState<boolean | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isCheckingConnection, setIsCheckingConnection] = useState(true);
 
@@ -75,12 +76,33 @@ export default function SettingsScreen() {
     setIsCheckingConnection(true);
     try {
       await checkHealth();
-      setIsConnected(true);
+      setIsBackendConnected(true);
     } catch {
-      setIsConnected(false);
+      setIsBackendConnected(false);
     } finally {
       setIsCheckingConnection(false);
     }
+  };
+
+  const handleConnectGarmin = () => {
+    router.push("/login");
+  };
+
+  const handleDisconnect = () => {
+    Alert.alert(
+      "Disconnect Garmin",
+      "This will log you out of Garmin Connect. You'll need to sign in again to sync activities.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Disconnect",
+          style: "destructive",
+          onPress: async () => {
+            await logout();
+          },
+        },
+      ]
+    );
   };
 
   const handleUnitsChange = async (newUnits: Units) => {
@@ -95,26 +117,39 @@ export default function SettingsScreen() {
   };
 
   const handleSync = async () => {
+    if (!isLoggedIn) {
+      Alert.alert(
+        "Not Connected",
+        "Please connect to Garmin first to sync activities.",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Connect", onPress: handleConnectGarmin },
+        ]
+      );
+      return;
+    }
+
     setIsSyncing(true);
     try {
-      const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.activities}/sync`, {
-        method: "POST",
-      });
-      const data: SyncResponse | MFAResponse = await response.json();
+      const data = await syncActivities(10);
 
-      if ("mfa_required" in data && data.mfa_required) {
+      if (isMFARequired(data)) {
         Alert.alert(
-          "MFA Required",
-          "Please open the app and complete MFA authentication in the Runs tab."
+          "Re-authentication Required",
+          "Your Garmin session expired. Please sign in again.",
+          [
+            { text: "Cancel", style: "cancel" },
+            { text: "Sign In", onPress: handleConnectGarmin },
+          ]
         );
-      } else if ("synced" in data) {
+      } else {
         const now = new Date().toISOString();
         setLastSync(now);
         await AsyncStorage.setItem(STORAGE_KEYS.LAST_SYNC, now);
         Alert.alert("Sync Complete", `Synced ${data.synced} activities`);
       }
     } catch (error) {
-      Alert.alert("Sync Failed", "Could not connect to Garmin. Check your connection.");
+      Alert.alert("Sync Failed", "Could not sync activities. Please try again.");
     } finally {
       setIsSyncing(false);
     }
@@ -177,7 +212,30 @@ export default function SettingsScreen() {
       <Text style={styles.sectionTitle}>Garmin Connection</Text>
       <View style={styles.card}>
         <View style={styles.row}>
-          <Text style={styles.rowLabel}>Status</Text>
+          <Text style={styles.rowLabel}>Garmin Account</Text>
+          <View style={styles.statusRow}>
+            {authLoading ? (
+              <ActivityIndicator size="small" color="#1976D2" />
+            ) : (
+              <>
+                <View
+                  style={[
+                    styles.statusDot,
+                    { backgroundColor: isLoggedIn ? "#4CAF50" : "#9E9E9E" },
+                  ]}
+                />
+                <Text style={styles.statusText}>
+                  {isLoggedIn ? "Connected" : "Not connected"}
+                </Text>
+              </>
+            )}
+          </View>
+        </View>
+
+        <View style={styles.divider} />
+
+        <View style={styles.row}>
+          <Text style={styles.rowLabel}>Backend Status</Text>
           <View style={styles.statusRow}>
             {isCheckingConnection ? (
               <ActivityIndicator size="small" color="#1976D2" />
@@ -186,11 +244,11 @@ export default function SettingsScreen() {
                 <View
                   style={[
                     styles.statusDot,
-                    { backgroundColor: isConnected ? "#4CAF50" : "#F44336" },
+                    { backgroundColor: isBackendConnected ? "#4CAF50" : "#F44336" },
                   ]}
                 />
                 <Text style={styles.statusText}>
-                  {isConnected ? "Connected" : "Disconnected"}
+                  {isBackendConnected ? "Online" : "Offline"}
                 </Text>
               </>
             )}
@@ -206,17 +264,34 @@ export default function SettingsScreen() {
 
         <View style={styles.divider} />
 
-        <Pressable
-          style={[styles.button, isSyncing && styles.buttonDisabled]}
-          onPress={handleSync}
-          disabled={isSyncing}
-        >
-          {isSyncing ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
-          ) : (
-            <Text style={styles.buttonText}>Sync Now</Text>
-          )}
-        </Pressable>
+        {isLoggedIn ? (
+          <>
+            <Pressable
+              style={[styles.button, isSyncing && styles.buttonDisabled]}
+              onPress={handleSync}
+              disabled={isSyncing}
+            >
+              {isSyncing ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Text style={styles.buttonText}>Sync Now</Text>
+              )}
+            </Pressable>
+            <Pressable
+              style={styles.disconnectButton}
+              onPress={handleDisconnect}
+            >
+              <Text style={styles.disconnectText}>Disconnect Garmin</Text>
+            </Pressable>
+          </>
+        ) : (
+          <Pressable
+            style={styles.button}
+            onPress={handleConnectGarmin}
+          >
+            <Text style={styles.buttonText}>Connect to Garmin</Text>
+          </Pressable>
+        )}
       </View>
 
       {/* Preferences */}
@@ -434,6 +509,20 @@ const styles = StyleSheet.create({
   destructiveText: {
     fontSize: 16,
     color: "#F44336",
+    fontWeight: "500",
+  },
+  disconnectButton: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#F44336",
+  },
+  disconnectText: {
+    color: "#F44336",
+    fontSize: 16,
     fontWeight: "500",
   },
   footer: {

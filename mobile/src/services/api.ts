@@ -1,8 +1,14 @@
 import { API_BASE_URL, API_ENDPOINTS } from "./apiConfig";
+import {
+  getAuthHeader,
+  updateTokensIfRefreshed,
+} from "./authService";
 import type { ActivitySummary, ActivityDetails, HealthCheck } from "../types";
 
 /**
  * API Client for Running Coach Backend
+ *
+ * Automatically includes Garmin tokens in requests and handles token refresh.
  */
 
 class ApiError extends Error {
@@ -15,16 +21,51 @@ class ApiError extends Error {
   }
 }
 
-async function fetchJson<T>(endpoint: string): Promise<T> {
+interface FetchOptions {
+  method?: "GET" | "POST" | "PUT" | "DELETE";
+  body?: object;
+  includeAuth?: boolean;
+}
+
+async function fetchJson<T>(
+  endpoint: string,
+  options: FetchOptions = {}
+): Promise<T> {
+  const { method = "GET", body, includeAuth = true } = options;
   const url = `${API_BASE_URL}${endpoint}`;
 
   try {
-    const response = await fetch(url);
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+
+    // Include auth token if available and requested
+    if (includeAuth) {
+      const authHeader = await getAuthHeader();
+      if (authHeader) {
+        headers["Authorization"] = authHeader;
+      }
+    }
+
+    const fetchOptions: RequestInit = {
+      method,
+      headers,
+    };
+
+    if (body) {
+      fetchOptions.body = JSON.stringify(body);
+    }
+
+    const response = await fetch(url, fetchOptions);
+
+    // Check for refreshed tokens and save them
+    await updateTokensIfRefreshed(response);
 
     if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
       throw new ApiError(
         response.status,
-        `HTTP ${response.status}: ${response.statusText}`
+        errorData.detail || `HTTP ${response.status}: ${response.statusText}`
       );
     }
 
@@ -42,7 +83,7 @@ async function fetchJson<T>(endpoint: string): Promise<T> {
  * Check backend health status
  */
 export async function checkHealth(): Promise<HealthCheck> {
-  return fetchJson<HealthCheck>(API_ENDPOINTS.health);
+  return fetchJson<HealthCheck>(API_ENDPOINTS.health, { includeAuth: false });
 }
 
 /**
@@ -55,8 +96,42 @@ export async function fetchActivities(): Promise<ActivitySummary[]> {
 /**
  * Fetch detailed analysis for a specific activity
  */
-export async function fetchActivityDetail(id: string): Promise<ActivityDetails> {
+export async function fetchActivityDetail(
+  id: string
+): Promise<ActivityDetails> {
   return fetchJson<ActivityDetails>(API_ENDPOINTS.activityDetail(id));
+}
+
+/**
+ * Sync response types
+ */
+interface SyncResponse {
+  synced: number;
+  activities: ActivitySummary[];
+  message: string;
+}
+
+interface MFARequiredResponse {
+  mfa_required: true;
+  message: string;
+}
+
+type SyncResult = SyncResponse | MFARequiredResponse;
+
+/**
+ * Sync activities from Garmin Connect
+ */
+export async function syncActivities(count: number = 10): Promise<SyncResult> {
+  return fetchJson<SyncResult>(`${API_ENDPOINTS.activities}/sync?count=${count}`, {
+    method: "POST",
+  });
+}
+
+/**
+ * Check if sync response requires MFA
+ */
+export function isMFARequired(response: SyncResult): response is MFARequiredResponse {
+  return "mfa_required" in response && response.mfa_required === true;
 }
 
 export { ApiError };

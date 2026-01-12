@@ -6,10 +6,12 @@ Endpoints for syncing and retrieving running activities.
 
 import json
 import os
+import shutil
 from pathlib import Path
 from typing import Optional
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Header, Response
 
+from dependencies.auth import decode_tokens_to_dir
 from models.activity import (
     ActivitySummary,
     ActivityDetails,
@@ -188,16 +190,40 @@ async def list_activities():
 
 
 @router.post("/sync")
-async def sync_activities(count: int = 10):
+async def sync_activities(
+    response: Response,
+    count: int = 10,
+    authorization: Optional[str] = Header(None),
+):
     """
     Sync latest activities from Garmin Connect.
 
     Downloads FIT files for the most recent running activities.
-    Returns 200 with mfa_required=true if MFA code is needed.
+
+    Authentication:
+    - Pass Authorization header with client tokens (preferred for cloud)
+    - Or use server-side credentials (local development)
+
+    Returns X-Refreshed-Tokens header if tokens were refreshed.
     """
+    token_dir = None
     try:
-        service = get_garmin_service()
+        # Decode tokens to temp directory if provided
+        if authorization:
+            try:
+                token_dir = decode_tokens_to_dir(authorization)
+            except HTTPException:
+                raise
+            except Exception as e:
+                raise HTTPException(status_code=401, detail=f"Invalid token: {e}")
+
+        service = get_garmin_service(client_tokens=token_dir)
         synced = service.sync_latest(count=count)
+
+        # Check if tokens were refreshed (returns encoded string now)
+        refreshed_b64 = service.get_refreshed_tokens()
+        if refreshed_b64:
+            response.headers["X-Refreshed-Tokens"] = refreshed_b64
 
         return SyncResponse(
             synced=len(synced),
@@ -212,11 +238,17 @@ async def sync_activities(count: int = 10):
         )
     except FileNotFoundError as e:
         raise HTTPException(status_code=500, detail=str(e))
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=500,
             detail=f"Failed to sync with Garmin: {str(e)}",
         )
+    finally:
+        # Clean up temp directory
+        if token_dir:
+            shutil.rmtree(token_dir, ignore_errors=True)
 
 
 @router.post("/mfa", response_model=MFASubmitResponse)
@@ -240,131 +272,156 @@ async def submit_mfa(request: MFASubmitRequest):
 
 
 @router.get("/{activity_id}", response_model=ActivityDetails)
-async def get_activity(activity_id: str):
+async def get_activity(
+    activity_id: str,
+    response: Response,
+    authorization: Optional[str] = Header(None),
+):
     """
     Get full details for a specific activity.
 
     Parses the FIT file and returns running dynamics metrics with grades.
+    Optionally fetches workout compliance if tokens provided.
     """
-    fit_path = Path(os.environ.get("FIT_FILES_PATH", "/data/fit-files"))
-    fit_file = fit_path / f"{activity_id}.fit"
-
-    if not fit_file.exists():
-        raise HTTPException(status_code=404, detail="Activity not found")
-
+    token_dir = None
     try:
-        parsed = parse_fit_file(str(fit_file))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to parse FIT file: {e}")
+        # Decode tokens to temp directory if provided
+        if authorization:
+            try:
+                token_dir = decode_tokens_to_dir(authorization)
+            except Exception:
+                pass  # Continue without tokens, won't fetch compliance
 
-    summary = parsed.get("summary", {})
-    metrics = parsed.get("metrics", {})
-    time_series = parsed.get("timeSeries", [])
-    laps = parsed.get("laps", [])
-    fatigue = parsed.get("fatigue", [])
+        fit_path = Path(os.environ.get("FIT_FILES_PATH", "/data/fit-files"))
+        fit_file = fit_path / f"{activity_id}.fit"
 
-    # Build summary metrics from parsed data
-    summary_metrics = SummaryMetrics(
-        avgCadence=GradeValue(
-            value=metrics.get("avgCadence", {}).get("value", 0),
-            grade=metrics.get("avgCadence", {}).get("grade", "B"),
-        ),
-        avgGct=GradeValue(
-            value=metrics.get("avgGct", {}).get("value", 0),
-            grade=metrics.get("avgGct", {}).get("grade", "B"),
-        ),
-        avgGctBalance=GradeValue(
-            value=metrics.get("avgGctBalance", {}).get("value", 50),
-            grade=metrics.get("avgGctBalance", {}).get("grade", "B"),
-        ),
-        avgVerticalRatio=GradeValue(
-            value=metrics.get("avgVerticalRatio", {}).get("value", 0),
-            grade=metrics.get("avgVerticalRatio", {}).get("grade", "B"),
-        ),
-        avgHeartRate=metrics.get("avgHeartRate", {}).get("value"),
-        avgPace=summary.get("avgPace", 0),
-    )
+        if not fit_file.exists():
+            raise HTTPException(status_code=404, detail="Activity not found")
 
-    # Convert time series to Pydantic models
-    ts_points = [TimeSeriesDataPoint(**point) for point in time_series]
-
-    # Convert laps to Pydantic models
-    lap_models = [Lap(**lap) for lap in laps]
-
-    # Generate coaching insights based on metrics
-    coaching = generate_coaching_insights(metrics, fatigue)
-
-    # Convert fatigue comparison
-    fatigue_models = [FatigueComparison(**f) for f in fatigue]
-
-    # Fetch scheduled workout and calculate compliance
-    workout_compliance = None
-    start_time = summary.get("startTime", "")
-    # Use activity_id (filename) for matching - it contains descriptive name like "Quality_Session"
-    # The FIT file's activityName is often just "Run"
-    activity_name_for_matching = activity_id.replace("_", " ").replace("-", " ")
-    distance_m = summary.get("totalDistance", 0)
-
-    # Extract Garmin activity ID for API lookup
-    garmin_id = extract_garmin_id(activity_id)
-    garmin_activity_id = int(garmin_id) if garmin_id.isdigit() else None
-
-    if start_time:
         try:
-            garmin_service = get_garmin_service()
-            scheduled_workout = garmin_service.get_scheduled_workout(
-                start_time,
-                activity_name=activity_name_for_matching,
-                activity_distance_m=distance_m,
-                garmin_activity_id=garmin_activity_id,
-            )
-            if scheduled_workout:
-                distance_km = summary.get("totalDistance", 0) / 1000
-                duration_sec = summary.get("totalDuration", 0)
-                compliance_data = calculate_workout_compliance(
-                    scheduled_workout, laps, distance_km, duration_sec
-                )
-                if compliance_data:
-                    workout_compliance = WorkoutCompliance(
-                        workoutName=compliance_data["workoutName"],
-                        workoutDescription=compliance_data.get("workoutDescription"),
-                        compliancePercent=compliance_data["compliancePercent"],
-                        stepsHit=compliance_data["stepsHit"],
-                        stepsPartial=compliance_data["stepsPartial"],
-                        stepsMissed=compliance_data["stepsMissed"],
-                        totalSteps=compliance_data["totalSteps"],
-                        distanceStatus=compliance_data.get("distanceStatus"),
-                        targetDistanceM=compliance_data.get("targetDistanceM"),
-                        actualDistanceM=compliance_data.get("actualDistanceM"),
-                        stepBreakdown=[
-                            StepCompliance(**s) for s in compliance_data.get("stepBreakdown", [])
-                        ],
-                    )
-                    # Cache compliance for list view
-                    save_compliance_cache(fit_file, {
-                        "workoutName": compliance_data["workoutName"],
-                        "compliancePercent": compliance_data["compliancePercent"],
-                    })
+            parsed = parse_fit_file(str(fit_file))
         except Exception as e:
-            print(f"Could not fetch workout compliance: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to parse FIT file: {e}")
 
-    return ActivityDetails(
-        id=activity_id,
-        activityName=summary.get("activityName", f"Run {activity_id}"),
-        startTime=summary.get("startTime", ""),
-        distanceKm=summary.get("totalDistance", 0) / 1000,
-        durationSeconds=int(summary.get("totalDuration", 0)),
-        activityType=summary.get("activityType", "running"),
-        fitFilePath=str(fit_file),
-        hasBeenAnalyzed=True,
-        summaryMetrics=summary_metrics,
-        timeSeries=ts_points,
-        laps=lap_models,
-        coaching=coaching,
-        fatigueComparison=fatigue_models,
-        workoutCompliance=workout_compliance,
-        hasRunningDynamics=parsed.get("hasRunningDynamics", False),
-    )
+        summary = parsed.get("summary", {})
+        metrics = parsed.get("metrics", {})
+        time_series = parsed.get("timeSeries", [])
+        laps = parsed.get("laps", [])
+        fatigue = parsed.get("fatigue", [])
+
+        # Build summary metrics from parsed data
+        summary_metrics = SummaryMetrics(
+            avgCadence=GradeValue(
+                value=metrics.get("avgCadence", {}).get("value", 0),
+                grade=metrics.get("avgCadence", {}).get("grade", "B"),
+            ),
+            avgGct=GradeValue(
+                value=metrics.get("avgGct", {}).get("value", 0),
+                grade=metrics.get("avgGct", {}).get("grade", "B"),
+            ),
+            avgGctBalance=GradeValue(
+                value=metrics.get("avgGctBalance", {}).get("value", 50),
+                grade=metrics.get("avgGctBalance", {}).get("grade", "B"),
+            ),
+            avgVerticalRatio=GradeValue(
+                value=metrics.get("avgVerticalRatio", {}).get("value", 0),
+                grade=metrics.get("avgVerticalRatio", {}).get("grade", "B"),
+            ),
+            avgHeartRate=metrics.get("avgHeartRate", {}).get("value"),
+            avgPace=summary.get("avgPace", 0),
+        )
+
+        # Convert time series to Pydantic models
+        ts_points = [TimeSeriesDataPoint(**point) for point in time_series]
+
+        # Convert laps to Pydantic models
+        lap_models = [Lap(**lap) for lap in laps]
+
+        # Generate coaching insights based on metrics
+        coaching = generate_coaching_insights(metrics, fatigue)
+
+        # Convert fatigue comparison
+        fatigue_models = [FatigueComparison(**f) for f in fatigue]
+
+        # Fetch scheduled workout and calculate compliance
+        workout_compliance = None
+        start_time = summary.get("startTime", "")
+        # Use activity_id (filename) for matching - it contains descriptive name like "Quality_Session"
+        # The FIT file's activityName is often just "Run"
+        activity_name_for_matching = activity_id.replace("_", " ").replace("-", " ")
+        distance_m = summary.get("totalDistance", 0)
+
+        # Extract Garmin activity ID for API lookup
+        garmin_id = extract_garmin_id(activity_id)
+        garmin_activity_id = int(garmin_id) if garmin_id.isdigit() else None
+
+        garmin_service = None
+        if start_time and token_dir:
+            try:
+                garmin_service = get_garmin_service(client_tokens=token_dir)
+                scheduled_workout = garmin_service.get_scheduled_workout(
+                    start_time,
+                    activity_name=activity_name_for_matching,
+                    activity_distance_m=distance_m,
+                    garmin_activity_id=garmin_activity_id,
+                )
+                if scheduled_workout:
+                    distance_km = summary.get("totalDistance", 0) / 1000
+                    duration_sec = summary.get("totalDuration", 0)
+                    compliance_data = calculate_workout_compliance(
+                        scheduled_workout, laps, distance_km, duration_sec
+                    )
+                    if compliance_data:
+                        workout_compliance = WorkoutCompliance(
+                            workoutName=compliance_data["workoutName"],
+                            workoutDescription=compliance_data.get("workoutDescription"),
+                            compliancePercent=compliance_data["compliancePercent"],
+                            stepsHit=compliance_data["stepsHit"],
+                            stepsPartial=compliance_data["stepsPartial"],
+                            stepsMissed=compliance_data["stepsMissed"],
+                            totalSteps=compliance_data["totalSteps"],
+                            distanceStatus=compliance_data.get("distanceStatus"),
+                            targetDistanceM=compliance_data.get("targetDistanceM"),
+                            actualDistanceM=compliance_data.get("actualDistanceM"),
+                            stepBreakdown=[
+                                StepCompliance(**s) for s in compliance_data.get("stepBreakdown", [])
+                            ],
+                        )
+                        # Cache compliance for list view
+                        save_compliance_cache(fit_file, {
+                            "workoutName": compliance_data["workoutName"],
+                            "compliancePercent": compliance_data["compliancePercent"],
+                        })
+            except Exception as e:
+                print(f"Could not fetch workout compliance: {e}")
+
+        # Check if tokens were refreshed (returns encoded string now)
+        if garmin_service:
+            refreshed_b64 = garmin_service.get_refreshed_tokens()
+            if refreshed_b64:
+                response.headers["X-Refreshed-Tokens"] = refreshed_b64
+
+        return ActivityDetails(
+            id=activity_id,
+            activityName=summary.get("activityName", f"Run {activity_id}"),
+            startTime=summary.get("startTime", ""),
+            distanceKm=summary.get("totalDistance", 0) / 1000,
+            durationSeconds=int(summary.get("totalDuration", 0)),
+            activityType=summary.get("activityType", "running"),
+            fitFilePath=str(fit_file),
+            hasBeenAnalyzed=True,
+            summaryMetrics=summary_metrics,
+            timeSeries=ts_points,
+            laps=lap_models,
+            coaching=coaching,
+            fatigueComparison=fatigue_models,
+            workoutCompliance=workout_compliance,
+            hasRunningDynamics=parsed.get("hasRunningDynamics", False),
+        )
+    finally:
+        # Clean up temp directory
+        if token_dir:
+            shutil.rmtree(token_dir, ignore_errors=True)
 
 
 def generate_coaching_insights(metrics: dict, fatigue: list) -> CoachingInsights:
