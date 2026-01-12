@@ -19,6 +19,19 @@ function formatDate(dateString: string): string {
   });
 }
 
+function getActivityTypeLabel(activityType?: string): string | null {
+  switch (activityType) {
+    case "treadmill_running":
+      return "Treadmill";
+    case "trail_running":
+      return "Trail";
+    case "track_running":
+      return "Track";
+    default:
+      return null;
+  }
+}
+
 export default function ActivityDetailLayout() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -57,6 +70,13 @@ export default function ActivityDetailLayout() {
               <Text style={styles.title} numberOfLines={1}>
                 {activity.activityName}
               </Text>
+              {getActivityTypeLabel(activity.activityType) && (
+                <View style={styles.typeBadge}>
+                  <Text style={styles.typeBadgeText}>
+                    {getActivityTypeLabel(activity.activityType)}
+                  </Text>
+                </View>
+              )}
               {activity.hasRunningDynamics && (
                 <View style={styles.rdBadge}>
                   <Text style={styles.rdBadgeText}>RD</Text>
@@ -169,6 +189,17 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#1C1B1F",
     flexShrink: 1,
+  },
+  typeBadge: {
+    backgroundColor: "#E8E8E8",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  typeBadgeText: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: "#616161",
   },
   rdBadge: {
     backgroundColor: "#E3F2FD",
