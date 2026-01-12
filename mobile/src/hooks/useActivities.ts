@@ -274,9 +274,20 @@ export function useSubmitMFA() {
 
 /**
  * Fetch activity details from backend.
+ * Includes auth header to enable workout compliance fetching.
  */
 async function fetchActivityDetails(id: string): Promise<ActivityDetails> {
-  const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.activities}/${id}`);
+  const headers: Record<string, string> = {};
+  const authHeader = await getAuthHeader();
+  if (authHeader) {
+    headers["Authorization"] = authHeader;
+  }
+
+  const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.activities}/${id}`, { headers });
+
+  // Update tokens if refreshed
+  await updateTokensIfRefreshed(response);
+
   if (!response.ok) {
     throw new Error(`Failed to fetch activity: ${response.statusText}`);
   }
