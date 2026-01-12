@@ -130,7 +130,7 @@ export default function HomeScreen() {
       <View style={styles.header}>
         <View>
           <Text style={styles.greeting}>{getGreeting()}</Text>
-          <Text style={styles.title}>Running Coach</Text>
+          <Text style={styles.title}>Tristan's Toolkit</Text>
         </View>
       </View>
 

@@ -103,7 +103,7 @@ function ActivitiesScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Running Coach</Text>
+        <Text style={styles.title}>Tristan's Toolkit</Text>
         <Pressable
           style={styles.syncButton}
           onPress={handleRefresh}
