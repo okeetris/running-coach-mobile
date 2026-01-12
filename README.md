@@ -4,11 +4,15 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-Python-05998b?logo=fastapi)](https://fastapi.tiangolo.com/)
 [![Render](https://img.shields.io/badge/Deployed%20on-Render-46E3B7)](https://render.com/)
 
-Your intelligent running companion. React Native mobile app with Python FastAPI backend that integrates with Garmin Connect to analyze running activities with advanced biomechanics data.
+Your intelligent running coach and athlete's toolkit. React Native mobile app with Python FastAPI backend that integrates with Garmin Connect to analyze running activities, track glucose levels, and provide training utilities.
 
 ## Overview
 
-Syncs running activities from Garmin Connect, parses FIT files for running dynamics, and provides actionable coaching insights. Analyzes metrics like cadence, ground contact time, and vertical ratio to grade performance, track workout compliance, and detect fatigue patterns.
+Atlas combines running analysis with practical training tools:
+
+- **Running Coach** - Syncs activities from Garmin Connect, parses FIT files for running dynamics, and provides actionable coaching insights. Analyzes metrics like cadence, ground contact time, and vertical ratio to grade performance, track workout compliance, and detect fatigue patterns.
+- **Glucose Tracking** - Monitor blood glucose levels for metabolic insights and fueling optimization.
+- **Pace Calculator** - Calculate race paces, splits, and training zones.
 
 ## Demo
 
@@ -17,6 +21,7 @@ Syncs running activities from Garmin Connect, parses FIT files for running dynam
 
 ## Features
 
+### Running Coach
 - **Garmin Connect Sync** - Securely authenticates with Garmin (MFA supported) and fetches running activities
 - **Biomechanics Analysis** - Parses FIT files for running dynamics from HRM-Pro/HRM-Run sensors:
   - Cadence (steps per minute)
@@ -27,6 +32,10 @@ Syncs running activities from Garmin Connect, parses FIT files for running dynam
 - **Workout Compliance** - Compares completed runs against scheduled Garmin workouts
 - **Fatigue Analysis** - First half vs second half comparison to detect degradation
 - **Coaching Insights** - Tailored feedback based on your metrics
+
+### Toolkit
+- **Glucose Tracking** - Log and visualize blood glucose readings for metabolic health and race-day fueling strategies
+- **Pace Calculator** - Calculate target paces for races, convert between pace units, and generate split tables
 
 ## Tech Stack
 
