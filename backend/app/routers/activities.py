@@ -206,12 +206,6 @@ async def sync_activities(
 
     Returns X-Refreshed-Tokens header if tokens were refreshed.
     """
-    # Debug: log what we received
-    print(f"DEBUG sync: authorization header present = {authorization is not None}")
-    print(f"DEBUG sync: authorization length = {len(authorization) if authorization else 0}")
-    if authorization:
-        print(f"DEBUG sync: authorization prefix = {authorization[:50]}...")
-
     token_dir = None
     try:
         # Decode tokens to temp directory if provided
