@@ -67,9 +67,9 @@ class Lap(BaseModel):
     distance: float  # meters
     duration: float  # seconds
     avgPace: float  # seconds per km
-    avgCadence: Optional[int] = None
-    avgGct: Optional[int] = None
-    avgHeartRate: Optional[int] = None
+    avgCadence: Optional[float] = None
+    avgGct: Optional[float] = None
+    avgHeartRate: Optional[float] = None
 
 
 class CoachingInsights(BaseModel):
@@ -81,6 +81,16 @@ class CoachingInsights(BaseModel):
     focusCue: str
 
 
+class FatigueComparison(BaseModel):
+    """First half vs second half comparison."""
+
+    metric: str
+    firstHalf: float
+    secondHalf: float
+    change: float  # percentage change
+    changeDirection: str  # improved, degraded, stable
+
+
 class ActivityDetails(ActivitySummary):
     """Full activity details with analysis."""
 
@@ -88,3 +98,4 @@ class ActivityDetails(ActivitySummary):
     timeSeries: list[TimeSeriesDataPoint]
     laps: list[Lap]
     coaching: CoachingInsights
+    fatigueComparison: list[FatigueComparison] = []

@@ -2,16 +2,24 @@
  * TanStack Query hooks for activities.
  *
  * Handles fetching, caching, and syncing activities from the backend.
+ * Includes MFA (Multi-Factor Authentication) support for Garmin sync.
  */
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { API_BASE_URL, API_ENDPOINTS } from "../services/apiConfig";
-import type { ActivitySummary } from "../types";
+import type { ActivitySummary, ActivityDetails, MFARequiredResponse, MFASubmitResponse } from "../types";
 
 interface SyncResponse {
   synced: number;
   activities: ActivitySummary[];
   message: string;
+}
+
+// Union type for sync response (can be success or MFA required)
+type SyncResult = SyncResponse | MFARequiredResponse;
+
+function isMFARequired(response: SyncResult): response is MFARequiredResponse {
+  return "mfa_required" in response && response.mfa_required === true;
 }
 
 /**
@@ -27,8 +35,9 @@ async function fetchActivities(): Promise<ActivitySummary[]> {
 
 /**
  * Trigger sync with Garmin Connect.
+ * May return MFA required response instead of sync data.
  */
-async function syncActivities(count: number = 10): Promise<SyncResponse> {
+async function syncActivities(count: number = 10): Promise<SyncResult> {
   const response = await fetch(
     `${API_BASE_URL}${API_ENDPOINTS.activities}/sync?count=${count}`,
     { method: "POST" }
@@ -36,6 +45,25 @@ async function syncActivities(count: number = 10): Promise<SyncResponse> {
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.detail || "Failed to sync activities");
+  }
+  return response.json();
+}
+
+/**
+ * Submit MFA code to complete Garmin authentication.
+ */
+async function submitMFACode(code: string): Promise<MFASubmitResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}${API_ENDPOINTS.activities}/mfa`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code }),
+    }
+  );
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || "MFA verification failed");
   }
   return response.json();
 }
@@ -64,15 +92,58 @@ export function useActivities() {
  *
  * After successful sync, invalidates the activities cache
  * to trigger a refetch with the new data.
+ *
+ * Returns mutation with additional `needsMFA` flag in data when MFA is required.
  */
 export function useSyncActivities() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (count: number = 10) => syncActivities(count),
-    onSuccess: () => {
-      // Invalidate and refetch activities after sync
-      queryClient.invalidateQueries({ queryKey: ["activities"] });
+    onSuccess: (data) => {
+      // Only invalidate if actual sync happened (not MFA required)
+      if (!isMFARequired(data)) {
+        queryClient.invalidateQueries({ queryKey: ["activities"] });
+      }
     },
+  });
+}
+
+/**
+ * Check if sync result requires MFA.
+ */
+export { isMFARequired };
+
+/**
+ * Hook to submit MFA code.
+ *
+ * After successful MFA, you should retry the sync.
+ */
+export function useSubmitMFA() {
+  return useMutation({
+    mutationFn: (code: string) => submitMFACode(code),
+  });
+}
+
+/**
+ * Fetch activity details from backend.
+ */
+async function fetchActivityDetails(id: string): Promise<ActivityDetails> {
+  const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.activities}/${id}`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch activity: ${response.statusText}`);
+  }
+  return response.json();
+}
+
+/**
+ * Hook to fetch full activity details with metrics.
+ */
+export function useActivityDetails(activityId: string | null) {
+  return useQuery({
+    queryKey: ["activity", activityId],
+    queryFn: () => fetchActivityDetails(activityId!),
+    enabled: !!activityId,
+    staleTime: 10 * 60 * 1000, // 10 minutes - parsed data doesn't change
   });
 }

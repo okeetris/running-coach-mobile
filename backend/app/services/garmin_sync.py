@@ -3,16 +3,24 @@ Garmin Connect sync service.
 
 Handles authentication and activity fetching from Garmin Connect API.
 Reuses credentials from the mounted .garmin directory.
+Supports MFA (Multi-Factor Authentication) flow.
 """
 
 import json
 import os
 import zipfile
-from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
 from garminconnect import Garmin
+
+
+class MFARequiredError(Exception):
+    """Raised when MFA code is needed to complete login."""
+
+    def __init__(self, message: str = "MFA code required"):
+        self.message = message
+        super().__init__(self.message)
 
 
 class GarminSyncService:
@@ -22,10 +30,14 @@ class GarminSyncService:
         self.config_path = os.environ.get(
             "GARMIN_CONFIG_PATH", "/data/garmin/config.json"
         )
+        self.token_path = os.environ.get(
+            "GARMIN_TOKEN_PATH", "/data/garmin/tokens"
+        )
         self.fit_files_path = Path(
             os.environ.get("FIT_FILES_PATH", "/data/fit-files")
         )
         self.garmin: Optional[Garmin] = None
+        self._mfa_token: Optional[str] = None  # Stored when MFA is needed
 
     def _load_credentials(self) -> dict:
         """Load Garmin credentials from config file."""
@@ -43,23 +55,84 @@ class GarminSyncService:
 
         return config
 
+    def _try_load_tokens(self) -> bool:
+        """Try to load saved session tokens. Returns True if successful."""
+        if not os.path.exists(self.token_path):
+            return False
+        try:
+            self.garmin.garth.load(self.token_path)
+            return True
+        except Exception:
+            return False
+
+    def _save_tokens(self):
+        """Save session tokens for future use (avoids repeated MFA)."""
+        try:
+            os.makedirs(self.token_path, exist_ok=True)
+            self.garmin.garth.dump(self.token_path)
+        except Exception as e:
+            print(f"Warning: Failed to save tokens: {e}")
+
     def _get_client(self) -> Garmin:
-        """Get authenticated Garmin client (lazy initialization)."""
-        if self.garmin is None:
-            creds = self._load_credentials()
-            self.garmin = Garmin(creds["email"], creds["password"])
-            self.garmin.login()
+        """Get authenticated Garmin client with MFA support."""
+        if self.garmin is not None:
+            return self.garmin
+
+        creds = self._load_credentials()
+        # Use return_on_mfa=True to handle MFA ourselves
+        self.garmin = Garmin(creds["email"], creds["password"], return_on_mfa=True)
+
+        # Try loading saved tokens first
+        if self._try_load_tokens():
+            try:
+                # Verify tokens work by making a simple API call
+                self.garmin.get_full_name()
+                return self.garmin
+            except Exception:
+                pass  # Tokens invalid, need fresh login
+
+        # Fresh login required
+        result = self.garmin.login()
+
+        if result == "needs_mfa":
+            # MFA required - store token and raise error
+            self._mfa_token = self.garmin.garth.oauth1_token
+            raise MFARequiredError("MFA code required. Check your email/SMS.")
+
+        # Login successful, save tokens
+        self._save_tokens()
         return self.garmin
+
+    def needs_mfa(self) -> bool:
+        """Check if MFA code is pending."""
+        return self._mfa_token is not None
+
+    def submit_mfa(self, code: str) -> bool:
+        """
+        Submit MFA code to complete authentication.
+        Returns True on success, raises on failure.
+        """
+        if self.garmin is None:
+            raise ValueError("Must attempt login before submitting MFA")
+
+        try:
+            self.garmin.resume_login(self._mfa_token, code)
+            self._mfa_token = None  # Clear pending MFA
+            self._save_tokens()  # Save tokens for future use
+            return True
+        except Exception as e:
+            raise ValueError(f"MFA verification failed: {e}")
 
     def get_recent_activities(self, limit: int = 20) -> list[dict]:
         """Fetch recent activities from Garmin Connect."""
         client = self._get_client()
         activities = client.get_activities(0, limit)
 
-        # Filter to running activities only
+        # Filter to running activities (outdoor, treadmill, trail, track, etc.)
+        running_types = {"running", "treadmill_running", "trail_running", "track_running"}
         running_activities = [
             a for a in activities
-            if a.get("activityType", {}).get("typeKey") == "running"
+            if a.get("activityType", {}).get("typeKey") in running_types
         ]
 
         return running_activities

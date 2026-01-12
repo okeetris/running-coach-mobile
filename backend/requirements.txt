@@ -8,8 +8,8 @@ pydantic==2.10.0
 # FIT file parsing
 fitparse==1.2.0
 
-# Garmin Connect API
-garminconnect==0.2.25
+# Garmin Connect API (0.2.38+ required for MFA support)
+garminconnect>=0.2.38
 
 # Testing
 pytest==8.3.0
