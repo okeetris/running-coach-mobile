@@ -19,7 +19,10 @@ function TabIcon({ name, icon, focused }: TabIconProps) {
       <Text style={[styles.tabIcon, focused && styles.tabIconFocused]}>
         {icon}
       </Text>
-      <Text style={[styles.tabLabel, focused && styles.tabLabelFocused]}>
+      <Text
+        style={[styles.tabLabel, focused && styles.tabLabelFocused]}
+        numberOfLines={1}
+      >
         {name}
       </Text>
     </View>
@@ -49,9 +52,9 @@ export default function TabLayout() {
       <Tabs.Screen
         name="activities"
         options={{
-          title: "Activities",
+          title: "Runs",
           tabBarIcon: ({ focused }) => (
-            <TabIcon name="Activities" icon="🏃" focused={focused} />
+            <TabIcon name="Runs" icon="🏃" focused={focused} />
           ),
         }}
       />
@@ -60,7 +63,7 @@ export default function TabLayout() {
         options={{
           title: "Analyze",
           tabBarIcon: ({ focused }) => (
-            <TabIcon name="Analyze" icon="📊" focused={focused} />
+            <TabIcon name="New" icon="📊" focused={focused} />
           ),
         }}
       />
