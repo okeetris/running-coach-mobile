@@ -18,7 +18,11 @@ import {
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
-import { checkHealth, syncActivities, isMFARequired } from "../../src/services/api";
+import {
+  checkHealth,
+  syncActivities,
+  isMFARequired,
+} from "../../src/services/api";
 import { useAuth } from "../../src/contexts/AuthContext";
 
 // Storage keys
@@ -46,7 +50,9 @@ export default function SettingsScreen() {
   const [units, setUnits] = useState<Units>("metric");
   const [darkMode, setDarkMode] = useState(false);
   const [lastSync, setLastSync] = useState<string | null>(null);
-  const [isBackendConnected, setIsBackendConnected] = useState<boolean | null>(null);
+  const [isBackendConnected, setIsBackendConnected] = useState<boolean | null>(
+    null
+  );
   const [isSyncing, setIsSyncing] = useState(false);
   const [isCheckingConnection, setIsCheckingConnection] = useState(true);
 
@@ -149,7 +155,10 @@ export default function SettingsScreen() {
         Alert.alert("Sync Complete", `Synced ${data.synced} activities`);
       }
     } catch (error) {
-      Alert.alert("Sync Failed", "Could not sync activities. Please try again.");
+      Alert.alert(
+        "Sync Failed",
+        "Could not sync activities. Please try again."
+      );
     } finally {
       setIsSyncing(false);
     }
@@ -166,9 +175,7 @@ export default function SettingsScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              await AsyncStorage.multiRemove([
-                STORAGE_KEYS.LAST_SYNC,
-              ]);
+              await AsyncStorage.multiRemove([STORAGE_KEYS.LAST_SYNC]);
               setLastSync(null);
               Alert.alert("Cache Cleared", "Local cache has been cleared.");
             } catch (error) {
@@ -191,7 +198,8 @@ export default function SettingsScreen() {
 
     if (diffMins < 1) return "Just now";
     if (diffMins < 60) return `${diffMins} min ago`;
-    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
+    if (diffHours < 24)
+      return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
     if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
     return date.toLocaleDateString();
   };
@@ -244,7 +252,11 @@ export default function SettingsScreen() {
                 <View
                   style={[
                     styles.statusDot,
-                    { backgroundColor: isBackendConnected ? "#4CAF50" : "#F44336" },
+                    {
+                      backgroundColor: isBackendConnected
+                        ? "#4CAF50"
+                        : "#F44336",
+                    },
                   ]}
                 />
                 <Text style={styles.statusText}>
@@ -285,17 +297,14 @@ export default function SettingsScreen() {
             </Pressable>
           </>
         ) : (
-          <Pressable
-            style={styles.button}
-            onPress={handleConnectGarmin}
-          >
+          <Pressable style={styles.button} onPress={handleConnectGarmin}>
             <Text style={styles.buttonText}>Connect to Garmin</Text>
           </Pressable>
         )}
       </View>
 
       {/* Preferences */}
-      <Text style={styles.sectionTitle}>Preferences</Text>
+      <Text style={styles.sectionTitle}>Preferences (WIP)</Text>
       <View style={styles.card}>
         <View style={styles.row}>
           <Text style={styles.rowLabel}>Units</Text>
