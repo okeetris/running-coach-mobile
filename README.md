@@ -1,10 +1,10 @@
-# Running Coach Mobile
+# Atlas
 
 [![React Native](https://img.shields.io/badge/React%20Native-Expo-61DAFB?logo=react)](https://reactnative.dev/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-Python-05998b?logo=fastapi)](https://fastapi.tiangolo.com/)
 [![Render](https://img.shields.io/badge/Deployed%20on-Render-46E3B7)](https://render.com/)
 
-An intelligent running coach in your pocket. React Native mobile app with Python FastAPI backend that integrates with Garmin Connect to analyze running activities with advanced biomechanics data.
+Your intelligent running companion. React Native mobile app with Python FastAPI backend that integrates with Garmin Connect to analyze running activities with advanced biomechanics data.
 
 ## Overview
 
@@ -108,8 +108,8 @@ npx expo start
 
 ```bash
 cd backend
-docker build -t running-coach-backend .
-docker run -p 8000:8000 running-coach-backend
+docker build -t atlas-backend .
+docker run -p 8000:8000 atlas-backend
 ```
 
 ## Deployment
@@ -157,7 +157,7 @@ Tokens are obtained from `/auth/garmin/login` + `/auth/garmin/mfa` flow.
 ## Project Structure
 
 ```
-running-coach-mobile/
+atlas/
 ├── backend/
 │   ├── app/
 │   │   ├── main.py              # FastAPI app entry
