@@ -17,11 +17,13 @@ Atlas combines running analysis with practical training tools:
 ## Demo
 
 <!-- placeholder for app demo GIF -->
+
 ![App Demo](https://via.placeholder.com/300x600.gif?text=Demo+GIF+Here)
 
 ## Features
 
 ### Running Coach
+
 - **Garmin Connect Sync** - Securely authenticates with Garmin (MFA supported) and fetches running activities
 - **Biomechanics Analysis** - Parses FIT files for running dynamics from HRM-Pro/HRM-Run sensors:
   - Cadence (steps per minute)
@@ -34,25 +36,28 @@ Atlas combines running analysis with practical training tools:
 - **Coaching Insights** - Tailored feedback based on your metrics
 
 ### Toolkit
+
 - **Glucose Tracking** - Log and visualize blood glucose readings for metabolic health and race-day fueling strategies
 - **Pace Calculator** - Calculate target paces for races, convert between pace units, and generate split tables
 
 ## Tech Stack
 
 ### Mobile
-| Tech | Purpose |
-|------|---------|
-| React Native + Expo | Cross-platform mobile app |
-| TanStack Query | Data fetching and caching |
-| expo-secure-store | Secure token storage on device |
+
+| Tech                | Purpose                        |
+| ------------------- | ------------------------------ |
+| React Native + Expo | Cross-platform mobile app      |
+| TanStack Query      | Data fetching and caching      |
+| expo-secure-store   | Secure token storage on device |
 
 ### Backend
-| Tech | Purpose |
-|------|---------|
-| Python 3.11 | Backend language |
-| FastAPI | REST API framework |
+
+| Tech                  | Purpose                        |
+| --------------------- | ------------------------------ |
+| Python 3.11           | Backend language               |
+| FastAPI               | REST API framework             |
 | garminconnect / garth | Garmin Connect API integration |
-| Docker | Containerized deployment |
+| Docker                | Containerized deployment       |
 
 ## Architecture
 
@@ -68,6 +73,7 @@ Atlas combines running analysis with practical training tools:
 ```
 
 **Key Design Decisions:**
+
 - **Stateless Backend** - Tokens stored on device, passed with each request as base64-encoded tar.gz
 - **Token Refresh** - Backend returns refreshed tokens via `X-Refreshed-Tokens` header
 - **MFA Support** - Full OAuth1 + OAuth2 flow with MFA code handling
@@ -145,18 +151,19 @@ eas submit --platform android
 
 ## API Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/health` | Health check |
-| `POST` | `/auth/garmin/login` | Initiate Garmin login |
-| `POST` | `/auth/garmin/mfa` | Submit MFA code |
-| `GET` | `/activities` | List synced activities |
-| `POST` | `/activities/sync` | Sync from Garmin Connect |
-| `GET` | `/activities/{id}` | Get activity details with analysis |
+| Method | Endpoint             | Description                        |
+| ------ | -------------------- | ---------------------------------- |
+| `GET`  | `/health`            | Health check                       |
+| `POST` | `/auth/garmin/login` | Initiate Garmin login              |
+| `POST` | `/auth/garmin/mfa`   | Submit MFA code                    |
+| `GET`  | `/activities`        | List synced activities             |
+| `POST` | `/activities/sync`   | Sync from Garmin Connect           |
+| `GET`  | `/activities/{id}`   | Get activity details with analysis |
 
 ### Authentication
 
 All `/activities` endpoints accept an optional `Authorization` header:
+
 ```
 Authorization: Bearer <base64_encoded_tar_gz_of_tokens>
 ```
@@ -199,25 +206,21 @@ atlas/
 ## Environment Variables
 
 ### Backend
+
 No environment variables required for stateless operation. Optional for local development:
-| Variable | Description |
-|----------|-------------|
+
+| Variable         | Description                                                     |
+| ---------------- | --------------------------------------------------------------- |
 | `FIT_FILES_PATH` | Path to store downloaded FIT files (default: `/data/fit-files`) |
 
 ### Mobile
+
 Configure in `src/services/apiConfig.ts`:
-| Setting | Description |
-|---------|-------------|
+
+| Setting          | Description                                      |
+| ---------------- | ------------------------------------------------ |
 | `USE_PRODUCTION` | `true` for Render backend, `false` for localhost |
-| `PRODUCTION_URL` | Your Render deployment URL |
-
-## Contributing
-
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+| `PRODUCTION_URL` | Your Render deployment URL                       |
 
 ## License
 
