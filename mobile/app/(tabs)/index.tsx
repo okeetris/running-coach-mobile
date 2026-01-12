@@ -124,6 +124,10 @@ export default function HomeScreen() {
     return "Good evening";
   };
 
+  const handleSettingsPress = () => {
+    router.push("/settings");
+  };
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -132,6 +136,9 @@ export default function HomeScreen() {
           <Text style={styles.greeting}>{getGreeting()}</Text>
           <Text style={styles.title}>Atlas</Text>
         </View>
+        <Pressable style={styles.settingsButton} onPress={handleSettingsPress}>
+          <Text style={styles.settingsIcon}>⚙️</Text>
+        </Pressable>
       </View>
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
@@ -234,6 +241,12 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: "bold",
     color: "#1C1B1F",
+  },
+  settingsButton: {
+    padding: 8,
+  },
+  settingsIcon: {
+    fontSize: 24,
   },
   scroll: {
     flex: 1,

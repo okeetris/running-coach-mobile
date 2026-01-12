@@ -70,10 +70,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="settings"
         options={{
-          title: "Settings",
-          tabBarIcon: ({ focused }) => (
-            <TabIcon name="Settings" icon="⚙️" focused={focused} />
-          ),
+          href: null, // Hide from tab bar - accessed via header icon
         }}
       />
     </Tabs>

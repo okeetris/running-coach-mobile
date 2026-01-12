@@ -4,7 +4,7 @@
  * App preferences, Garmin connection, and data management.
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
+import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
 import { checkHealth } from "../../src/services/api";
@@ -40,6 +41,7 @@ interface MFAResponse {
 }
 
 export default function SettingsScreen() {
+  const router = useRouter();
   const [units, setUnits] = useState<Units>("metric");
   const [darkMode, setDarkMode] = useState(false);
   const [lastSync, setLastSync] = useState<string | null>(null);
@@ -165,6 +167,9 @@ export default function SettingsScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Header */}
       <View style={styles.header}>
+        <Pressable onPress={() => router.back()} style={styles.backButton}>
+          <Text style={styles.backArrow}>←</Text>
+        </Pressable>
         <Text style={styles.headerTitle}>Settings</Text>
       </View>
 
@@ -300,15 +305,25 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
   header: {
+    flexDirection: "row",
+    alignItems: "center",
     paddingTop: 60,
     paddingBottom: 16,
     paddingHorizontal: 16,
     backgroundColor: "#FFFFFF",
     borderBottomWidth: 1,
     borderBottomColor: "#E0E0E0",
+    gap: 12,
+  },
+  backButton: {
+    padding: 4,
+  },
+  backArrow: {
+    fontSize: 24,
+    color: "#1976D2",
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: "bold",
     color: "#1C1B1F",
   },
