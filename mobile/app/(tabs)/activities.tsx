@@ -33,11 +33,6 @@ export default function ActivitiesScreen() {
   const [showMFAModal, setShowMFAModal] = useState(false);
   const [mfaError, setMfaError] = useState<string | null>(null);
 
-  // Sync on first mount
-  useEffect(() => {
-    syncMutation.mutate(10);
-  }, []);
-
   // Check if sync result requires MFA
   useEffect(() => {
     if (syncMutation.data && isMFARequired(syncMutation.data)) {

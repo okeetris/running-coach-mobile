@@ -59,7 +59,7 @@ function RecentActivityItem({
 
 export default function AnalyzeScreen() {
   const router = useRouter();
-  const { data: activities } = useActivities();
+  const { data: activities, isLoading: activitiesLoading, isFetching: activitiesFetching } = useActivities();
   const syncMutation = useSyncActivities();
   const mfaMutation = useSubmitMFA();
   const [showMFAModal, setShowMFAModal] = useState(false);
@@ -162,7 +162,12 @@ export default function AnalyzeScreen() {
         {/* Recent Activities */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Recent Activities</Text>
-          {recentActivities.length > 0 ? (
+          {activitiesLoading || activitiesFetching ? (
+            <View style={styles.emptyState}>
+              <ActivityIndicator size="large" color="#1976D2" />
+              <Text style={styles.emptyHint}>Loading activities...</Text>
+            </View>
+          ) : recentActivities.length > 0 ? (
             <View style={styles.recentList}>
               {recentActivities.map((activity) => (
                 <RecentActivityItem
