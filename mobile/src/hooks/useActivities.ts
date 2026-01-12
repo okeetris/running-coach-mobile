@@ -3,12 +3,42 @@
  *
  * Handles fetching, caching, and syncing activities from the backend.
  * Includes MFA (Multi-Factor Authentication) support for Garmin sync.
+ * Persists activities to AsyncStorage for offline access.
  */
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_BASE_URL, API_ENDPOINTS } from "../services/apiConfig";
 import { getAuthHeader, updateTokensIfRefreshed } from "../services/authService";
 import type { ActivitySummary, ActivityDetails, MFARequiredResponse, MFASubmitResponse } from "../types";
+
+const ACTIVITIES_STORAGE_KEY = "cached_activities";
+
+/**
+ * Load activities from device storage.
+ */
+async function loadCachedActivities(): Promise<ActivitySummary[]> {
+  try {
+    const cached = await AsyncStorage.getItem(ACTIVITIES_STORAGE_KEY);
+    if (cached) {
+      return JSON.parse(cached);
+    }
+  } catch (error) {
+    console.warn("Failed to load cached activities:", error);
+  }
+  return [];
+}
+
+/**
+ * Save activities to device storage.
+ */
+async function saveCachedActivities(activities: ActivitySummary[]): Promise<void> {
+  try {
+    await AsyncStorage.setItem(ACTIVITIES_STORAGE_KEY, JSON.stringify(activities));
+  } catch (error) {
+    console.warn("Failed to save activities to cache:", error);
+  }
+}
 
 interface SyncResponse {
   synced: number;
@@ -24,20 +54,59 @@ function isMFARequired(response: SyncResult): response is MFARequiredResponse {
 }
 
 /**
- * Fetch activities list from backend.
+ * Fetch activities list from backend, falling back to device cache.
+ * Backend has ephemeral storage, so we primarily rely on device cache.
  */
 async function fetchActivities(): Promise<ActivitySummary[]> {
-  const headers: Record<string, string> = {};
-  const authHeader = await getAuthHeader();
-  if (authHeader) {
-    headers["Authorization"] = authHeader;
+  // First try to load from device cache (primary source due to ephemeral backend storage)
+  const cached = await loadCachedActivities();
+
+  // Try backend as well (in case it has newer data)
+  try {
+    const headers: Record<string, string> = {};
+    const authHeader = await getAuthHeader();
+    if (authHeader) {
+      headers["Authorization"] = authHeader;
+    }
+
+    const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.activities}`, { headers });
+    if (response.ok) {
+      const backendData = await response.json();
+      // If backend has data, merge with cache (backend takes precedence for same IDs)
+      if (backendData && backendData.length > 0) {
+        const merged = mergeActivities(backendData, cached);
+        await saveCachedActivities(merged);
+        return merged;
+      }
+    }
+  } catch (error) {
+    // Backend unavailable, use cache
+    console.warn("Backend unavailable, using cached activities");
   }
 
-  const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.activities}`, { headers });
-  if (!response.ok) {
-    throw new Error(`Failed to fetch activities: ${response.statusText}`);
+  return cached;
+}
+
+/**
+ * Merge activities from backend and cache, preferring backend for duplicates.
+ */
+function mergeActivities(backend: ActivitySummary[], cached: ActivitySummary[]): ActivitySummary[] {
+  const byId = new Map<string, ActivitySummary>();
+
+  // Add cached first
+  for (const activity of cached) {
+    byId.set(activity.id, activity);
   }
-  return response.json();
+
+  // Backend overwrites cached
+  for (const activity of backend) {
+    byId.set(activity.id, activity);
+  }
+
+  // Sort by startTime descending
+  return Array.from(byId.values()).sort((a, b) =>
+    (b.startTime || "").localeCompare(a.startTime || "")
+  );
 }
 
 /**
@@ -119,14 +188,20 @@ export function useSyncActivities() {
 
   return useMutation({
     mutationFn: (count: number = 10) => syncActivities(count),
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       // Only update cache if actual sync happened (not MFA required)
       if (!isMFARequired(data)) {
-        // Directly set the activities cache with sync response
-        // (Render free tier has ephemeral storage, so GET /activities returns empty)
         const syncData = data as SyncResponse;
         if (syncData.activities && syncData.activities.length > 0) {
-          queryClient.setQueryData(["activities"], syncData.activities);
+          // Get existing cached activities and merge with new ones
+          const existing = queryClient.getQueryData<ActivitySummary[]>(["activities"]) || [];
+          const merged = mergeActivities(syncData.activities, existing);
+
+          // Update query cache
+          queryClient.setQueryData(["activities"], merged);
+
+          // Persist to device storage
+          await saveCachedActivities(merged);
         }
       }
     },
