@@ -286,6 +286,7 @@ function SpeedInput({
         keyboardType="decimal-pad"
         placeholder="0"
         placeholderTextColor="#BDBDBD"
+        selectTextOnFocus
       />
     </View>
   );
@@ -314,6 +315,7 @@ function PaceInput({
             keyboardType="number-pad"
             placeholder="0"
             placeholderTextColor="#BDBDBD"
+            selectTextOnFocus
           />
         </View>
         <View style={styles.paceFieldGroup}>
@@ -325,6 +327,7 @@ function PaceInput({
             keyboardType="number-pad"
             placeholder="00"
             placeholderTextColor="#BDBDBD"
+            selectTextOnFocus
           />
         </View>
       </View>
@@ -355,6 +358,7 @@ function TimeInput({
             keyboardType="number-pad"
             placeholder="0"
             placeholderTextColor="#BDBDBD"
+            selectTextOnFocus
           />
         </View>
         <View style={styles.timeFieldGroup}>
@@ -366,6 +370,7 @@ function TimeInput({
             keyboardType="number-pad"
             placeholder="00"
             placeholderTextColor="#BDBDBD"
+            selectTextOnFocus
           />
         </View>
         <View style={styles.timeFieldGroup}>
@@ -377,6 +382,7 @@ function TimeInput({
             keyboardType="number-pad"
             placeholder="00"
             placeholderTextColor="#BDBDBD"
+            selectTextOnFocus
           />
         </View>
       </View>
