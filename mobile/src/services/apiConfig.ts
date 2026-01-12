@@ -11,7 +11,7 @@ import { Platform } from "react-native";
 
 // === PRODUCTION CONFIG ===
 // Set to true to use the deployed Render backend
-const USE_PRODUCTION = true;
+const USE_PRODUCTION = false;
 
 // Your Render URL
 const PRODUCTION_URL = "https://running-coach-mobile.onrender.com";

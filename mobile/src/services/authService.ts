@@ -87,7 +87,6 @@ export async function updateTokensIfRefreshed(
   const refreshedTokens = response.headers.get("X-Refreshed-Tokens");
   if (refreshedTokens) {
     await storeTokens(refreshedTokens);
-    console.log("Tokens refreshed and saved");
   }
 }
 

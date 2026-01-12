@@ -18,6 +18,7 @@ import {
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   checkHealth,
   syncActivities,
@@ -30,6 +31,7 @@ const STORAGE_KEYS = {
   UNITS: "@settings_units",
   DARK_MODE: "@settings_dark_mode",
   LAST_SYNC: "@settings_last_sync",
+  CACHED_ACTIVITIES: "cached_activities", // From useActivities.ts
 };
 
 type Units = "metric" | "imperial";
@@ -46,6 +48,7 @@ interface MFAResponse {
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { isLoggedIn, logout, isLoading: authLoading } = useAuth();
   const [units, setUnits] = useState<Units>("metric");
   const [darkMode, setDarkMode] = useState(false);
@@ -167,7 +170,7 @@ export default function SettingsScreen() {
   const handleClearCache = () => {
     Alert.alert(
       "Clear Cache",
-      "This will clear locally stored preferences. You'll need to sync again to see your activities.",
+      "This will clear cached activities and sync data. You'll need to sync again to see your activities.",
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -175,9 +178,18 @@ export default function SettingsScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              await AsyncStorage.multiRemove([STORAGE_KEYS.LAST_SYNC]);
+              // Clear AsyncStorage cache
+              await AsyncStorage.multiRemove([
+                STORAGE_KEYS.LAST_SYNC,
+                STORAGE_KEYS.CACHED_ACTIVITIES,
+              ]);
               setLastSync(null);
-              Alert.alert("Cache Cleared", "Local cache has been cleared.");
+
+              // Invalidate TanStack Query cache
+              queryClient.removeQueries({ queryKey: ["activities"] });
+              queryClient.removeQueries({ queryKey: ["activity"] });
+
+              Alert.alert("Cache Cleared", "Local cache has been cleared. Sync to fetch fresh data.");
             } catch (error) {
               Alert.alert("Error", "Failed to clear cache.");
             }

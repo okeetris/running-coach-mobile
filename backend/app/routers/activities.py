@@ -120,8 +120,9 @@ def get_cached_activities() -> list[ActivitySummary]:
             files_by_id[garmin_id] = fit_file
 
     activities = []
-    for fit_file in files_by_id.values():
-        activity_id = fit_file.stem
+    for garmin_id, fit_file in files_by_id.items():
+        # Use Garmin ID as activity ID for consistency with sync response
+        activity_id = garmin_id
 
         # Load cached compliance if available
         cached = load_cached_compliance(fit_file)

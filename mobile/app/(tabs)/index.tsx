@@ -40,6 +40,16 @@ function formatPace(secPerKm: number): string {
   return `${mins}:${secs.toString().padStart(2, "0")}/km`;
 }
 
+function formatDuration(seconds: number): string {
+  if (!seconds || seconds === 0) return "";
+  const hours = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  if (hours > 0) {
+    return `${hours}h ${mins}m`;
+  }
+  return `${mins} min`;
+}
+
 function GradeBadge({ grade }: { grade: Grade }) {
   return (
     <View style={[styles.gradeBadge, { backgroundColor: gradeColors[grade] }]}>
@@ -69,7 +79,7 @@ function LatestAnalysisCard({ activity }: { activity: ActivitySummary }) {
         {activity.workoutName || activity.activityName}
       </Text>
       <Text style={styles.latestStats}>
-        {activity.distanceKm.toFixed(1)} km
+        {activity.distanceKm.toFixed(1)} km • {formatDuration(activity.durationSeconds)}
       </Text>
 
       {/* Placeholder grades - will be populated when we add grades to summary */}
@@ -178,16 +188,8 @@ export default function HomeScreen() {
               <Text style={styles.quickActionLabel}>All Runs</Text>
             </Pressable>
             <Pressable style={styles.quickAction} onPress={handleAnalyzePress}>
-              <Text style={styles.quickActionIcon}>🔄</Text>
-              <Text style={styles.quickActionLabel}>Sync</Text>
-            </Pressable>
-            <Pressable style={[styles.quickAction, styles.quickActionDisabled]}>
-              <Text style={styles.quickActionIcon}>❤️</Text>
-              <Text style={styles.quickActionLabel}>Recovery</Text>
-            </Pressable>
-            <Pressable style={[styles.quickAction, styles.quickActionDisabled]}>
-              <Text style={styles.quickActionIcon}>📈</Text>
-              <Text style={styles.quickActionLabel}>Trends</Text>
+              <Text style={styles.quickActionIcon}>📥</Text>
+              <Text style={styles.quickActionLabel}>Fetch New</Text>
             </Pressable>
           </View>
         </View>
@@ -426,9 +428,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
-  },
-  quickActionDisabled: {
-    opacity: 0.5,
   },
   quickActionIcon: {
     fontSize: 24,

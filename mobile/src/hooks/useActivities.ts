@@ -88,19 +88,67 @@ async function fetchActivities(): Promise<ActivitySummary[]> {
 }
 
 /**
- * Merge activities from backend and cache, preferring backend for duplicates.
+ * Normalize startTime to minute precision for deduplication.
+ * Strips timezone and seconds to handle format differences between sources.
+ */
+function normalizeStartTime(startTime: string): string {
+  if (!startTime) return "";
+  try {
+    const date = new Date(startTime);
+    // Round to nearest minute, format as ISO without seconds
+    date.setSeconds(0, 0);
+    return date.toISOString().slice(0, 16); // "2026-01-11T10:30"
+  } catch {
+    return startTime.slice(0, 16);
+  }
+}
+
+/**
+ * Merge activities from backend and cache, combining data from both sources.
+ * Backend provides fresh metadata, cache may have grades from FIT parsing.
+ * Uses normalized startTime as secondary deduplication key.
  */
 function mergeActivities(backend: ActivitySummary[], cached: ActivitySummary[]): ActivitySummary[] {
   const byId = new Map<string, ActivitySummary>();
+  const byNormalizedTime = new Map<string, ActivitySummary>(); // for finding duplicates
 
-  // Add cached first
+  // Index cached by normalized time for lookup
   for (const activity of cached) {
     byId.set(activity.id, activity);
+    if (activity.startTime) {
+      byNormalizedTime.set(normalizeStartTime(activity.startTime), activity);
+    }
   }
 
-  // Backend overwrites cached
+  // Merge backend with cached data
   for (const activity of backend) {
-    byId.set(activity.id, activity);
+    let merged = { ...activity };
+
+    // Find matching cached entry (by ID or startTime)
+    let cachedEntry = byId.get(activity.id);
+    if (!cachedEntry && activity.startTime) {
+      cachedEntry = byNormalizedTime.get(normalizeStartTime(activity.startTime));
+    }
+
+    if (cachedEntry) {
+      // Merge: prefer backend for basic info, preserve cached grades/dynamics
+      merged = {
+        ...cachedEntry,
+        ...activity,
+        // Preserve grades if backend doesn't have them
+        grades: activity.grades || cachedEntry.grades,
+        // Preserve compliance if backend doesn't have it
+        compliancePercent: activity.compliancePercent ?? cachedEntry.compliancePercent,
+        workoutName: activity.workoutName || cachedEntry.workoutName,
+      };
+
+      // Remove old entry if ID changed
+      if (cachedEntry.id !== activity.id) {
+        byId.delete(cachedEntry.id);
+      }
+    }
+
+    byId.set(activity.id, merged);
   }
 
   // Sort by startTime descending
