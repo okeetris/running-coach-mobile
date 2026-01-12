@@ -180,6 +180,29 @@ export default function HomeScreen() {
             </Pressable>
           </View>
         </View>
+
+        {/* Your Tools */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Your Tools</Text>
+          <View style={styles.toolsRow}>
+            <Pressable
+              style={styles.toolCard}
+              onPress={() => router.push("/tools/glucose")}
+            >
+              <Text style={styles.toolIcon}>🩸</Text>
+              <Text style={styles.toolTitle}>Glucose</Text>
+              <Text style={styles.toolSubtitle}>mmol/L ↔ mg/dL</Text>
+            </Pressable>
+            <Pressable
+              style={styles.toolCard}
+              onPress={() => router.push("/tools/pace")}
+            >
+              <Text style={styles.toolIcon}>⏱️</Text>
+              <Text style={styles.toolTitle}>Pace</Text>
+              <Text style={styles.toolSubtitle}>Speed & Race Times</Text>
+            </Pressable>
+          </View>
+        </View>
       </ScrollView>
     </View>
   );
@@ -398,5 +421,35 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: "#49454F",
     fontWeight: "500",
+  },
+  toolsRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  toolCard: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 20,
+    alignItems: "center",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  toolIcon: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
+  toolTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1C1B1F",
+    marginBottom: 2,
+  },
+  toolSubtitle: {
+    fontSize: 12,
+    color: "#757575",
   },
 });
