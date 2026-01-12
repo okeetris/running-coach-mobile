@@ -12,15 +12,8 @@ import {
   StyleSheet,
   Pressable,
   LayoutAnimation,
-  Platform,
-  UIManager,
 } from "react-native";
 import type { WorkoutCompliance, StepCompliance } from "../../types";
-
-// Enable LayoutAnimation for Android
-if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
 
 interface Props {
   compliance: WorkoutCompliance;
