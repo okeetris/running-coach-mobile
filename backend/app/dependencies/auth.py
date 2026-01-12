@@ -40,7 +40,17 @@ def decode_tokens_to_dir(authorization: str) -> str:
         # Extract to temp directory
         tmpdir = tempfile.mkdtemp()
         with tarfile.open(fileobj=BytesIO(tar_data), mode="r:gz") as tar:
+            print(f"DEBUG decode: tar members = {tar.getnames()}")
             tar.extractall(tmpdir)
+
+        # Debug: show what we extracted
+        import glob
+        files = glob.glob(f"{tmpdir}/*")
+        print(f"DEBUG decode: extracted files = {files}")
+        for f in files:
+            with open(f) as fp:
+                content = fp.read()
+                print(f"DEBUG decode: {f} = {content[:200]}...")
 
         # Verify token files exist
         if not os.path.exists(f"{tmpdir}/oauth1_token.json"):
@@ -97,8 +107,21 @@ def encode_tokens_from_garth(garth_client) -> str:
     """
     tmpdir = tempfile.mkdtemp()
     try:
+        # Debug: check what tokens garth has before dump
+        print(f"DEBUG: oauth1_token type = {type(garth_client.oauth1_token)}")
+        print(f"DEBUG: oauth1_token = {garth_client.oauth1_token}")
+        print(f"DEBUG: oauth2_token = {garth_client.oauth2_token}")
+
         # Dump tokens using garth's native format
         garth_client.dump(tmpdir)
+
+        # Debug: check what files were created
+        import glob
+        files = glob.glob(f"{tmpdir}/*")
+        print(f"DEBUG: files created by dump = {files}")
+        for f in files:
+            with open(f) as fp:
+                print(f"DEBUG: {f} contents = {fp.read()[:200]}...")
 
         # Create tar.gz in memory
         tar_buffer = BytesIO()
