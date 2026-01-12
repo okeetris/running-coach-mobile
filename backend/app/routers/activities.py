@@ -15,6 +15,7 @@ from models.activity import (
     ActivityDetails,
     SyncResponse,
     GradeValue,
+    GradeSummary,
     SummaryMetrics,
     TimeSeriesDataPoint,
     Lap,
@@ -129,6 +130,17 @@ def get_cached_activities() -> list[ActivitySummary]:
             # Parse FIT file for summary data
             parsed = parse_fit_file(str(fit_file))
             summary = parsed.get("summary", {})
+            metrics = parsed.get("metrics", {})
+
+            # Extract grades if available
+            grades = None
+            if metrics.get("avgCadence") and metrics.get("avgGct"):
+                grades = GradeSummary(
+                    cadence=metrics.get("avgCadence", {}).get("grade", "B"),
+                    gct=metrics.get("avgGct", {}).get("grade", "B"),
+                    gctBalance=metrics.get("avgGctBalance", {}).get("grade", "B"),
+                    verticalRatio=metrics.get("avgVerticalRatio", {}).get("grade", "B"),
+                )
 
             activities.append(
                 ActivitySummary(
@@ -141,6 +153,7 @@ def get_cached_activities() -> list[ActivitySummary]:
                     hasBeenAnalyzed=True,
                     workoutName=workout_name,
                     compliancePercent=compliance_pct,
+                    grades=grades,
                 )
             )
         except Exception:

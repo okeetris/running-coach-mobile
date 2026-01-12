@@ -16,6 +16,8 @@ import {
 } from "react-native";
 import { useActivityDetails } from "../hooks/useActivities";
 import { InteractiveRunChart } from "../components/charts/InteractiveRunChart";
+import { GCTBalanceChart } from "../components/charts/GCTBalanceChart";
+import { CadenceGCTScatter } from "../components/charts/CadenceGCTScatter";
 import { WorkoutComplianceCard } from "../components/activity/WorkoutComplianceCard";
 import type { Grade, GradeValue, FatigueComparison, TimeSeriesDataPoint } from "../types";
 
@@ -178,6 +180,22 @@ export function ActivityDetailScreen({ activityId, onBack }: Props) {
     ];
   }, [timeSeries]);
 
+  // GCT Balance data for dedicated chart
+  const gctBalanceData = useMemo(() => {
+    if (!timeSeries || timeSeries.length === 0) return [];
+    return timeSeries
+      .filter((p: TimeSeriesDataPoint) => p.gctBalance != null)
+      .map((p: TimeSeriesDataPoint) => ({ timestamp: p.timestamp, value: p.gctBalance! }));
+  }, [timeSeries]);
+
+  // Cadence-GCT correlation data
+  const cadenceGctData = useMemo(() => {
+    if (!timeSeries || timeSeries.length === 0) return [];
+    return timeSeries
+      .filter((p: TimeSeriesDataPoint) => p.cadence != null && p.gct != null)
+      .map((p: TimeSeriesDataPoint) => ({ cadence: p.cadence!, gct: p.gct! }));
+  }, [timeSeries]);
+
   // Early returns after all hooks
   if (isLoading) {
     return (
@@ -301,6 +319,24 @@ export function ActivityDetailScreen({ activityId, onBack }: Props) {
           <>
             <Text style={styles.sectionTitle}>Heart Rate</Text>
             <InteractiveRunChart configs={hrChartConfigs} height={180} />
+          </>
+        )}
+
+        {/* GCT Balance Chart */}
+        {gctBalanceData.length > 10 && (
+          <>
+            <Text style={styles.sectionTitle}>GCT Balance</Text>
+            <Text style={styles.chartHint}>49-51% is ideal (balanced stride)</Text>
+            <GCTBalanceChart data={gctBalanceData} />
+          </>
+        )}
+
+        {/* Cadence-GCT Correlation */}
+        {cadenceGctData.length > 10 && (
+          <>
+            <Text style={styles.sectionTitle}>Cadence vs GCT</Text>
+            <Text style={styles.chartHint}>Higher cadence typically means lower ground contact time</Text>
+            <CadenceGCTScatter data={cadenceGctData} />
           </>
         )}
 

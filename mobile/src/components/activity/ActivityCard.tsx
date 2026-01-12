@@ -3,11 +3,29 @@
  */
 
 import { View, Text, StyleSheet, Pressable } from "react-native";
-import type { ActivitySummary } from "../../types";
+import type { ActivitySummary, Grade } from "../../types";
 
 interface ActivityCardProps {
   activity: ActivitySummary;
   onPress?: () => void;
+}
+
+const gradeColors: Record<Grade, string> = {
+  A: "#4CAF50",
+  B: "#8BC34A",
+  C: "#FFC107",
+  D: "#F44336",
+};
+
+function GradeBadge({ grade, label }: { grade: Grade; label: string }) {
+  return (
+    <View style={styles.gradeItem}>
+      <Text style={styles.gradeLabel}>{label}</Text>
+      <View style={[styles.gradeBadge, { backgroundColor: gradeColors[grade] }]}>
+        <Text style={styles.gradeText}>{grade}</Text>
+      </View>
+    </View>
+  );
 }
 
 function formatDuration(seconds: number): string {
@@ -88,6 +106,16 @@ export function ActivityCard({ activity, onPress }: ActivityCardProps) {
           <Text style={styles.statLabel}>pace</Text>
         </View>
       </View>
+
+      {/* Grade badges */}
+      {activity.grades && (
+        <View style={styles.gradesRow}>
+          <GradeBadge grade={activity.grades.cadence} label="CAD" />
+          <GradeBadge grade={activity.grades.gct} label="GCT" />
+          <GradeBadge grade={activity.grades.gctBalance} label="BAL" />
+          <GradeBadge grade={activity.grades.verticalRatio} label="V.R" />
+        </View>
+      )}
     </Pressable>
   );
 }
@@ -156,5 +184,34 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#49454F",
     marginTop: 2,
+  },
+  gradesRow: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#F0F0F0",
+  },
+  gradeItem: {
+    alignItems: "center",
+    gap: 4,
+  },
+  gradeLabel: {
+    fontSize: 10,
+    color: "#9E9E9E",
+    fontWeight: "500",
+  },
+  gradeBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  gradeText: {
+    fontSize: 12,
+    fontWeight: "bold",
+    color: "#FFFFFF",
   },
 });

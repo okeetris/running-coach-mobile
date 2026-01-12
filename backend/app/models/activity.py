@@ -9,6 +9,15 @@ from typing import Optional
 from pydantic import BaseModel
 
 
+class GradeSummary(BaseModel):
+    """Grade summary for list view badges."""
+
+    cadence: str  # A, B, C, D
+    gct: str
+    gctBalance: str
+    verticalRatio: str
+
+
 class ActivitySummary(BaseModel):
     """Summary of an activity for list views."""
 
@@ -21,6 +30,7 @@ class ActivitySummary(BaseModel):
     hasBeenAnalyzed: bool = False
     workoutName: Optional[str] = None  # Scheduled workout name if matched
     compliancePercent: Optional[int] = None  # Workout compliance if calculated
+    grades: Optional[GradeSummary] = None  # Running dynamics grades
 
 
 class SyncResponse(BaseModel):

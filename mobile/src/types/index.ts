@@ -22,6 +22,14 @@ export interface MFASubmitResponse {
   message: string;
 }
 
+// Grade summary for activity cards
+export interface GradeSummary {
+  cadence: Grade;
+  gct: Grade;
+  gctBalance: Grade;
+  verticalRatio: Grade;
+}
+
 // Activity summary for list view
 export interface ActivitySummary {
   id: string;
@@ -31,13 +39,7 @@ export interface ActivitySummary {
   durationSeconds: number;
   workoutName?: string; // Scheduled workout name if matched
   compliancePercent?: number; // Workout compliance if calculated
-  // Optional grade summary for list view
-  grades?: {
-    cadence: Grade;
-    gct: Grade;
-    gctBalance: Grade;
-    verticalRatio: Grade;
-  };
+  grades?: GradeSummary; // Running dynamics grades
 }
 
 // Grade values
