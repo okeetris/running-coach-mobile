@@ -10,6 +10,18 @@ export interface HealthCheck {
   fit_files_accessible: boolean;
 }
 
+// MFA response when authentication needs a code
+export interface MFARequiredResponse {
+  mfa_required: true;
+  message: string;
+}
+
+// MFA submission response
+export interface MFASubmitResponse {
+  success: boolean;
+  message: string;
+}
+
 // Activity summary for list view
 export interface ActivitySummary {
   id: string;
@@ -65,21 +77,20 @@ export interface WorkoutStep {
   status?: "hit" | "missed" | "close"; // ✓, ✗, ~
 }
 
-// Summary metrics with grades
+// Metric value with grade
+export interface GradeValue {
+  value: number;
+  grade: Grade;
+}
+
+// Summary metrics with grades (matches backend)
 export interface SummaryMetrics {
-  avgCadence: number;
-  cadenceGrade: Grade;
-  avgGct: number;
-  gctGrade: Grade;
-  avgGctBalance: number;
-  gctBalanceGrade: Grade;
-  avgVerticalRatio: number;
-  verticalRatioGrade: Grade;
+  avgCadence: GradeValue;
+  avgGct: GradeValue;
+  avgGctBalance: GradeValue;
+  avgVerticalRatio: GradeValue;
   avgHeartRate?: number;
   avgPace: number;
-  // HRM-600 specific
-  avgSsl?: number;
-  sslGrade?: Grade;
 }
 
 // Fatigue comparison (first half vs second half)

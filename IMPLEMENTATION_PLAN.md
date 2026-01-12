@@ -9,7 +9,8 @@
 ## Current Progress
 
 **Phase 1: Infrastructure** - COMPLETE
-**Phase 2: Data Layer** - IN PROGRESS
+**Phase 2: Data Layer** - COMPLETE
+**Phase 3: FIT Parsing + Detail Screen** - COMPLETE
 
 ### Phase 1 Summary (Complete)
 - [x] Monorepo structure created
@@ -21,14 +22,41 @@
 - [x] API service files (apiConfig.ts, api.ts, types/index.ts)
 - [x] **MILESTONE M1: App connected to backend!**
 
-### Phase 2 Progress
+### Phase 2 Summary (Complete)
 - [x] Added `garminconnect` to backend
 - [x] Created Garmin sync service (`services/garmin_sync.py`)
 - [x] Created `/activities` and `/activities/sync` endpoints
 - [x] Created `useActivities` and `useSyncActivities` hooks
 - [x] Built activity list screen with FlashList
 - [x] Added sync-on-open and pull-to-refresh
-- [ ] **MILESTONE M2:** Test sync with real Garmin data
+- [x] Activities displayed from cached FIT files
+- [x] **MILESTONE M2:** Activity list working!
+
+### Phase 3 Summary (Complete)
+- [x] Created FIT parser service (`services/fit_parser.py`)
+- [x] Extracts: cadence, GCT, GCT balance, vertical ratio, heart rate
+- [x] Computes grades (A/B/C/D) using same thresholds as running-coach
+- [x] Computes fatigue comparison (first half vs second half)
+- [x] Activity detail endpoint returns full parsed data
+- [x] Activity list shows real distance/duration from FIT files
+- [x] Created `ActivityDetailScreen` with:
+  - Summary stats (distance, time, pace)
+  - Coaching at-a-glance with focus cue
+  - Running dynamics metrics with grade badges
+  - "What went well" / "Areas to address" sections
+  - Fatigue comparison (first half vs second half)
+- [x] Navigation from list to detail screen
+- [x] **MILESTONE M3:** Full biomechanics analysis working!
+
+### MFA Support (Complete)
+- [x] Updated garminconnect to 0.2.38 (MFA support)
+- [x] Backend detects when MFA is required via `return_on_mfa=True`
+- [x] Added `/activities/mfa` endpoint for code submission
+- [x] Session tokens saved to avoid repeated MFA
+- [x] Mobile MFAModal component with code input
+- [x] Hooks detect MFA response and show modal
+- [x] After MFA success, auto-retry sync
+- [x] **MFA flow ready for when Garmin requires it**
 
 ### To Test Phase 2
 ```bash

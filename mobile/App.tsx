@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import {
   StyleSheet,
@@ -11,8 +11,15 @@ import {
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { FlashList } from "@shopify/flash-list";
 
-import { useActivities, useSyncActivities } from "./src/hooks/useActivities";
+import {
+  useActivities,
+  useSyncActivities,
+  useSubmitMFA,
+  isMFARequired,
+} from "./src/hooks/useActivities";
 import { ActivityCard } from "./src/components/activity/ActivityCard";
+import { ActivityDetailScreen } from "./src/screens/ActivityDetailScreen";
+import { MFAModal } from "./src/components/MFAModal";
 import type { ActivitySummary } from "./src/types";
 
 // Create QueryClient instance
@@ -31,22 +38,66 @@ const queryClient = new QueryClient({
 function ActivitiesScreen() {
   const { data: activities, isLoading, error, refetch } = useActivities();
   const syncMutation = useSyncActivities();
+  const mfaMutation = useSubmitMFA();
+  const [selectedActivityId, setSelectedActivityId] = useState<string | null>(null);
+  const [showMFAModal, setShowMFAModal] = useState(false);
+  const [mfaError, setMfaError] = useState<string | null>(null);
 
   // Sync on first mount
   useEffect(() => {
     syncMutation.mutate(10);
   }, []);
 
+  // Check if sync result requires MFA
+  useEffect(() => {
+    if (syncMutation.data && isMFARequired(syncMutation.data)) {
+      setShowMFAModal(true);
+      setMfaError(null);
+    }
+  }, [syncMutation.data]);
+
   const handleRefresh = () => {
     syncMutation.mutate(10);
   };
 
   const handleActivityPress = (activity: ActivitySummary) => {
-    // TODO: Navigate to activity detail
-    console.log("Activity pressed:", activity.id);
+    setSelectedActivityId(activity.id);
+  };
+
+  const handleBack = () => {
+    setSelectedActivityId(null);
+  };
+
+  const handleMFASubmit = (code: string) => {
+    setMfaError(null);
+    mfaMutation.mutate(code, {
+      onSuccess: () => {
+        setShowMFAModal(false);
+        // Retry sync after successful MFA
+        syncMutation.mutate(10);
+      },
+      onError: (err) => {
+        setMfaError(err.message);
+      },
+    });
+  };
+
+  const handleMFACancel = () => {
+    setShowMFAModal(false);
+    setMfaError(null);
   };
 
   const isRefreshing = syncMutation.isPending;
+
+  // Show detail screen if an activity is selected
+  if (selectedActivityId) {
+    return (
+      <ActivityDetailScreen
+        activityId={selectedActivityId}
+        onBack={handleBack}
+      />
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -119,7 +170,6 @@ function ActivitiesScreen() {
               onPress={() => handleActivityPress(item)}
             />
           )}
-          estimatedItemSize={120}
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}
@@ -140,6 +190,15 @@ function ActivitiesScreen() {
       )}
 
       <StatusBar style="auto" />
+
+      {/* MFA Modal */}
+      <MFAModal
+        visible={showMFAModal}
+        onSubmit={handleMFASubmit}
+        onCancel={handleMFACancel}
+        isSubmitting={mfaMutation.isPending}
+        error={mfaError}
+      />
     </View>
   );
 }
