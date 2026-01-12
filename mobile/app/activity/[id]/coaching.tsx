@@ -1,11 +1,12 @@
 /**
  * Coaching Tab
  *
- * Shows what went well, areas to address, and focus cue.
+ * Shows what went well, areas to address, focus cue, and fatigue analysis.
  */
 
 import { View, Text, StyleSheet, ScrollView } from "react-native";
 import { useActivity } from "../../../src/contexts/ActivityContext";
+import type { FatigueComparison } from "../../../src/types";
 
 function WentWellItem({ text }: { text: string }) {
   return (
@@ -25,16 +26,37 @@ function AreaToAddressItem({ text }: { text: string }) {
   );
 }
 
+function FatigueCard({ item }: { item: FatigueComparison }) {
+  const isGood = item.changeDirection === "improved" || item.changeDirection === "stable";
+  const changeColor = isGood ? "#4CAF50" : "#F44336";
+  const arrow = item.change > 0 ? "↑" : item.change < 0 ? "↓" : "→";
+
+  return (
+    <View style={styles.fatigueCard}>
+      <Text style={styles.fatigueMetric}>{item.metric}</Text>
+      <View style={styles.fatigueRow}>
+        <Text style={styles.fatigueValue}>{item.firstHalf.toFixed(1)}</Text>
+        <Text style={styles.fatigueArrow}>→</Text>
+        <Text style={styles.fatigueValue}>{item.secondHalf.toFixed(1)}</Text>
+        <Text style={[styles.fatigueChange, { color: changeColor }]}>
+          {arrow} {Math.abs(item.change).toFixed(1)}%
+        </Text>
+      </View>
+    </View>
+  );
+}
+
 export default function CoachingTab() {
   const { activity } = useActivity();
 
   if (!activity) return null;
 
-  const { coaching } = activity;
+  const { coaching, fatigueComparison } = activity;
   const hasContent =
     coaching.whatWentWell.length > 0 ||
     coaching.areasToAddress.length > 0 ||
-    coaching.focusCue;
+    coaching.focusCue ||
+    (fatigueComparison && fatigueComparison.length > 0);
 
   if (!hasContent) {
     return (
@@ -77,6 +99,18 @@ export default function CoachingTab() {
           <View style={styles.focusCard}>
             <Text style={styles.focusIcon}>🎯</Text>
             <Text style={styles.focusCue}>{coaching.focusCue}</Text>
+          </View>
+        </>
+      )}
+
+      {/* Fatigue Analysis */}
+      {fatigueComparison && fatigueComparison.length > 0 && (
+        <>
+          <Text style={styles.sectionTitle}>Fatigue Analysis</Text>
+          <View style={styles.card}>
+            {fatigueComparison.map((item, index) => (
+              <FatigueCard key={index} item={item} />
+            ))}
           </View>
         </>
       )}
@@ -164,5 +198,35 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#1565C0",
     lineHeight: 24,
+  },
+  fatigueCard: {
+    marginBottom: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E0E0E0",
+  },
+  fatigueMetric: {
+    fontSize: 12,
+    color: "#49454F",
+    marginBottom: 4,
+  },
+  fatigueRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  fatigueValue: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1C1B1F",
+  },
+  fatigueArrow: {
+    fontSize: 14,
+    color: "#49454F",
+  },
+  fatigueChange: {
+    marginLeft: "auto",
+    fontSize: 14,
+    fontWeight: "600",
   },
 });
