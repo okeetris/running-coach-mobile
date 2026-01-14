@@ -30,7 +30,7 @@ def format_step_type(step_type: str) -> str:
         "interval": "Interval",
         "recovery": "Recovery",
         "rest": "Recovery",
-        "other": "Run",
+        "other": "Interval",  # Garmin uses "other" for work/interval steps
         "run": "Run",
         "work": "Work",
     }
