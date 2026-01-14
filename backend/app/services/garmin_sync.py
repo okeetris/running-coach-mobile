@@ -266,36 +266,55 @@ class GarminSyncService:
         client = self._get_client()
         workout = client.connectapi(f"/workout-service/workout/{workout_id}")
 
+        def extract_steps(step_list: list, repeat_count: int = 1) -> list:
+            """Recursively extract steps, flattening repeat groups."""
+            extracted = []
+            for step in step_list:
+                step_type = step.get("stepType", {}).get("stepTypeKey", "unknown")
+
+                # Handle RepeatGroupDTO - extract nested steps
+                if step.get("type") == "RepeatGroupDTO" or step_type == "repeat":
+                    nested_steps = step.get("workoutSteps", [])
+                    iterations = int(step.get("numberOfIterations", 1))
+                    # Flatten: repeat the nested steps for each iteration
+                    for _ in range(iterations):
+                        extracted.extend(extract_steps(nested_steps, 1))
+                else:
+                    # Regular executable step
+                    step_info = {
+                        "type": step_type,
+                        "order": step.get("stepOrder", 0),
+                    }
+
+                    # Parse end condition (distance or time)
+                    end_condition = step.get("endCondition", {}).get("conditionTypeKey")
+                    end_value = step.get("endConditionValue")
+                    if end_condition == "distance" and end_value:
+                        step_info["targetDistanceM"] = end_value
+                    elif end_condition == "time" and end_value:
+                        step_info["targetDurationSec"] = end_value
+
+                    # Parse target pace (speed values are in m/s)
+                    target_one = step.get("targetValueOne")
+                    target_two = step.get("targetValueTwo")
+                    if target_one and target_two:
+                        # Convert m/s to sec/km for pace
+                        slow_pace_sec = 1000 / target_one if target_one > 0 else None
+                        fast_pace_sec = 1000 / target_two if target_two > 0 else None
+                        if slow_pace_sec and fast_pace_sec:
+                            step_info["targetPaceRange"] = {
+                                "slowSecPerKm": round(slow_pace_sec),
+                                "fastSecPerKm": round(fast_pace_sec),
+                            }
+
+                    extracted.append(step_info)
+
+            return extracted
+
         steps = []
         for segment in workout.get("workoutSegments", []):
-            for step in segment.get("workoutSteps", []):
-                step_info = {
-                    "type": step.get("stepType", {}).get("stepTypeKey", "unknown"),
-                    "order": step.get("stepOrder", 0),
-                }
-
-                # Parse end condition (distance or time)
-                end_condition = step.get("endCondition", {}).get("conditionTypeKey")
-                end_value = step.get("endConditionValue")
-                if end_condition == "distance" and end_value:
-                    step_info["targetDistanceM"] = end_value
-                elif end_condition == "time" and end_value:
-                    step_info["targetDurationSec"] = end_value
-
-                # Parse target pace (speed values are in m/s)
-                target_one = step.get("targetValueOne")
-                target_two = step.get("targetValueTwo")
-                if target_one and target_two:
-                    # Convert m/s to sec/km for pace
-                    slow_pace_sec = 1000 / target_one if target_one > 0 else None
-                    fast_pace_sec = 1000 / target_two if target_two > 0 else None
-                    if slow_pace_sec and fast_pace_sec:
-                        step_info["targetPaceRange"] = {
-                            "slowSecPerKm": round(slow_pace_sec),
-                            "fastSecPerKm": round(fast_pace_sec),
-                        }
-
-                steps.append(step_info)
+            segment_steps = segment.get("workoutSteps", [])
+            steps.extend(extract_steps(segment_steps))
 
         return {
             "workoutId": workout_id,

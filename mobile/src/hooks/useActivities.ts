@@ -296,11 +296,37 @@ async function fetchActivityDetails(id: string): Promise<ActivityDetails> {
 
 /**
  * Hook to fetch full activity details with metrics.
+ * Updates the activities list cache with compliance data when fetched.
  */
 export function useActivityDetails(activityId: string | null) {
+  const queryClient = useQueryClient();
+
   return useQuery({
     queryKey: ["activity", activityId],
-    queryFn: () => fetchActivityDetails(activityId!),
+    queryFn: async () => {
+      const details = await fetchActivityDetails(activityId!);
+
+      // Update the activities list cache with compliance data
+      if (details.workoutCompliance) {
+        const activities = queryClient.getQueryData<ActivitySummary[]>(["activities"]);
+        if (activities) {
+          const updated = activities.map((a) =>
+            a.id === activityId
+              ? {
+                  ...a,
+                  compliancePercent: details.workoutCompliance!.compliancePercent,
+                  workoutName: details.workoutCompliance!.workoutName,
+                }
+              : a
+          );
+          queryClient.setQueryData(["activities"], updated);
+          // Also persist to device storage
+          saveCachedActivities(updated);
+        }
+      }
+
+      return details;
+    },
     enabled: !!activityId,
     staleTime: 10 * 60 * 1000, // 10 minutes - parsed data doesn't change
   });
