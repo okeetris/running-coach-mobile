@@ -14,7 +14,6 @@ import {
   Pressable,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
 
@@ -65,10 +64,7 @@ export default function GlucoseConverterScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.content}
       >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-        >
+        <View style={styles.scrollContent}>
           {/* Info */}
           <View style={styles.infoCard}>
             <Text style={styles.infoText}>
@@ -76,46 +72,45 @@ export default function GlucoseConverterScreen() {
             </Text>
           </View>
 
-          {/* mmol/L Input */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>mmol/L</Text>
-            <TextInput
-              style={styles.input}
-              value={mmol}
-              onChangeText={handleMmolChange}
-              keyboardType="decimal-pad"
-              placeholder="0.0"
-              placeholderTextColor="#9E9E9E"
-            />
-            <Text style={styles.unitHint}>millimoles per litre</Text>
-          </View>
+          {/* Horizontal converter layout */}
+          <View style={styles.converterRow}>
+            {/* mmol/L Input */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>mmol/L</Text>
+              <TextInput
+                style={styles.input}
+                value={mmol}
+                onChangeText={handleMmolChange}
+                keyboardType="decimal-pad"
+                placeholder="0.0"
+                placeholderTextColor="#9E9E9E"
+                selectTextOnFocus
+              />
+            </View>
 
-          {/* Divider with equals */}
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>=</Text>
-            <View style={styles.dividerLine} />
-          </View>
+            {/* Equals sign */}
+            <Text style={styles.equalsSign}>=</Text>
 
-          {/* mg/dL Input */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>mg/dL</Text>
-            <TextInput
-              style={styles.input}
-              value={mgdl}
-              onChangeText={handleMgdlChange}
-              keyboardType="decimal-pad"
-              placeholder="0.0"
-              placeholderTextColor="#9E9E9E"
-            />
-            <Text style={styles.unitHint}>milligrams per decilitre</Text>
+            {/* mg/dL Input */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>mg/dL</Text>
+              <TextInput
+                style={styles.input}
+                value={mgdl}
+                onChangeText={handleMgdlChange}
+                keyboardType="decimal-pad"
+                placeholder="0"
+                placeholderTextColor="#9E9E9E"
+                selectTextOnFocus
+              />
+            </View>
           </View>
 
           {/* Clear Button */}
           <Pressable style={styles.clearButton} onPress={handleClear}>
             <Text style={styles.clearButtonText}>Clear</Text>
           </Pressable>
-        </ScrollView>
+        </View>
       </KeyboardAvoidingView>
     </View>
   );
@@ -169,11 +164,17 @@ const styles = StyleSheet.create({
     color: "#1565C0",
     textAlign: "center",
   },
+  converterRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+  },
   inputGroup: {
-    marginBottom: 16,
+    flex: 1,
   },
   label: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "600",
     color: "#1C1B1F",
     marginBottom: 8,
@@ -184,40 +185,24 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 2,
     borderColor: "#E0E0E0",
-    paddingHorizontal: 20,
+    paddingHorizontal: 12,
     paddingVertical: 16,
-    fontSize: 32,
+    fontSize: 24,
     fontWeight: "600",
     color: "#1976D2",
     textAlign: "center",
   },
-  unitHint: {
-    fontSize: 12,
+  equalsSign: {
+    fontSize: 28,
     color: "#9E9E9E",
-    textAlign: "center",
-    marginTop: 4,
-  },
-  divider: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 16,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: "#E0E0E0",
-  },
-  dividerText: {
-    fontSize: 24,
-    color: "#9E9E9E",
-    marginHorizontal: 16,
+    fontWeight: "300",
+    marginTop: 20,
   },
   clearButton: {
     backgroundColor: "#F5F5F5",
     borderRadius: 12,
     paddingVertical: 14,
-    marginTop: 24,
-    marginBottom: 32,
+    marginTop: 32,
   },
   clearButtonText: {
     fontSize: 16,
