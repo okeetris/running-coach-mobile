@@ -4,10 +4,26 @@
  * Shows key metrics, grades, at-a-glance, and workout compliance.
  */
 
-import { View, Text, StyleSheet, ScrollView } from "react-native";
+import { useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Pressable,
+  LayoutAnimation,
+  Platform,
+  UIManager,
+} from "react-native";
 import { useActivity } from "../../../src/contexts/ActivityContext";
 import { WorkoutComplianceCard } from "../../../src/components/activity/WorkoutComplianceCard";
+import { METRIC_INFO } from "../../../src/constants/metricInfo";
 import type { Grade, GradeValue } from "../../../src/types";
+
+// Enable LayoutAnimation on Android
+if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 function formatDuration(seconds: number): string {
   const hrs = Math.floor(seconds / 3600);
@@ -46,26 +62,95 @@ function MetricCard({
   value,
   unit,
   gradeValue,
+  metricKey,
+  isExpanded,
+  onPress,
 }: {
   label: string;
   value: string;
   unit: string;
   gradeValue?: GradeValue;
+  metricKey: string;
+  isExpanded: boolean;
+  onPress: () => void;
 }) {
+  const metricInfo = METRIC_INFO[metricKey];
+  const grade = gradeValue?.grade;
+
   return (
-    <View style={styles.metricCard}>
-      <Text style={styles.metricLabel}>{label}</Text>
+    <Pressable
+      style={[styles.metricCard, isExpanded && styles.metricCardExpanded]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityState={{ expanded: isExpanded }}
+      accessibilityHint="Tap to see grade details"
+    >
+      <View style={styles.metricHeader}>
+        <Text style={styles.metricLabel}>{label}</Text>
+        <Text style={styles.expandIndicator}>{isExpanded ? "−" : "+"}</Text>
+      </View>
       <View style={styles.metricRow}>
         <Text style={styles.metricValue}>{value}</Text>
         <Text style={styles.metricUnit}>{unit}</Text>
         {gradeValue && <GradeBadge grade={gradeValue.grade} />}
       </View>
-    </View>
+
+      {isExpanded && metricInfo && (
+        <View style={styles.expandedContent}>
+          <View style={styles.thresholdsContainer}>
+            <Text style={styles.expandedLabel}>Grade Thresholds</Text>
+            <View style={styles.thresholdsList}>
+              {(["A", "B", "C", "D"] as Grade[]).map((g) => (
+                <View
+                  key={g}
+                  style={[
+                    styles.thresholdItem,
+                    grade === g && styles.thresholdItemActive,
+                  ]}
+                >
+                  <View
+                    style={[styles.thresholdBadge, { backgroundColor: gradeColors[g] }]}
+                  >
+                    <Text style={styles.thresholdBadgeText}>{g}</Text>
+                  </View>
+                  <Text
+                    style={[
+                      styles.thresholdValue,
+                      grade === g && styles.thresholdValueActive,
+                    ]}
+                  >
+                    {metricInfo.thresholds[g]}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.whyContainer}>
+            <Text style={styles.expandedLabel}>Why It Matters</Text>
+            <Text style={styles.whyText}>{metricInfo.why}</Text>
+          </View>
+
+          {grade && grade !== "A" && metricInfo.coachingCues[grade] && (
+            <View style={styles.coachingContainer}>
+              <Text style={styles.coachingLabel}>Coaching Tip</Text>
+              <Text style={styles.coachingText}>{metricInfo.coachingCues[grade]}</Text>
+            </View>
+          )}
+        </View>
+      )}
+    </Pressable>
   );
 }
 
 export default function SummaryTab() {
   const { activity } = useActivity();
+  const [expandedMetric, setExpandedMetric] = useState<string | null>(null);
+
+  const toggleMetric = (metricKey: string) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpandedMetric(expandedMetric === metricKey ? null : metricKey);
+  };
 
   if (!activity) return null;
 
@@ -106,24 +191,36 @@ export default function SummaryTab() {
           value={summaryMetrics.avgCadence.value.toFixed(0)}
           unit="spm"
           gradeValue={summaryMetrics.avgCadence}
+          metricKey="cadence"
+          isExpanded={expandedMetric === "cadence"}
+          onPress={() => toggleMetric("cadence")}
         />
         <MetricCard
           label="Ground Contact"
           value={summaryMetrics.avgGct.value.toFixed(0)}
           unit="ms"
           gradeValue={summaryMetrics.avgGct}
+          metricKey="gct"
+          isExpanded={expandedMetric === "gct"}
+          onPress={() => toggleMetric("gct")}
         />
         <MetricCard
           label="GCT Balance"
           value={summaryMetrics.avgGctBalance.value.toFixed(1)}
           unit="%"
           gradeValue={summaryMetrics.avgGctBalance}
+          metricKey="gctBalance"
+          isExpanded={expandedMetric === "gctBalance"}
+          onPress={() => toggleMetric("gctBalance")}
         />
         <MetricCard
           label="Vertical Ratio"
           value={summaryMetrics.avgVerticalRatio.value.toFixed(1)}
           unit="%"
           gradeValue={summaryMetrics.avgVerticalRatio}
+          metricKey="verticalRatio"
+          isExpanded={expandedMetric === "verticalRatio"}
+          onPress={() => toggleMetric("verticalRatio")}
         />
       </View>
 
@@ -218,10 +315,25 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
   },
+  metricCardExpanded: {
+    width: "100%",
+    elevation: 4,
+    shadowOpacity: 0.15,
+  },
+  metricHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
   metricLabel: {
     fontSize: 12,
     color: "#49454F",
     marginBottom: 8,
+  },
+  expandIndicator: {
+    fontSize: 18,
+    color: "#49454F",
+    fontWeight: "500",
   },
   metricRow: {
     flexDirection: "row",
@@ -249,6 +361,88 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "bold",
     color: "#FFFFFF",
+  },
+  expandedContent: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#E0E0E0",
+  },
+  thresholdsContainer: {
+    marginBottom: 12,
+  },
+  expandedLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#49454F",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 8,
+  },
+  thresholdsList: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  thresholdItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    backgroundColor: "#F5F5F5",
+  },
+  thresholdItemActive: {
+    backgroundColor: "#E3F2FD",
+  },
+  thresholdBadge: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  thresholdBadgeText: {
+    fontSize: 11,
+    fontWeight: "bold",
+    color: "#FFFFFF",
+  },
+  thresholdValue: {
+    fontSize: 12,
+    color: "#49454F",
+  },
+  thresholdValueActive: {
+    fontWeight: "600",
+    color: "#1565C0",
+  },
+  whyContainer: {
+    marginBottom: 12,
+  },
+  whyText: {
+    fontSize: 13,
+    color: "#1C1B1F",
+    lineHeight: 18,
+  },
+  coachingContainer: {
+    backgroundColor: "#FFF8E1",
+    borderRadius: 8,
+    padding: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: "#FFB300",
+  },
+  coachingLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#FF8F00",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  coachingText: {
+    fontSize: 13,
+    color: "#5D4037",
+    lineHeight: 18,
   },
   complianceError: {
     backgroundColor: "#FFF3E0",
