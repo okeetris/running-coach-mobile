@@ -6,7 +6,7 @@ from typing import Optional
 from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel
 
-from services.garmin_sync import GarminSync
+from services.garmin_sync import GarminSyncService
 from dependencies.auth import decode_tokens_to_dir
 
 
@@ -46,7 +46,7 @@ async def get_hr_zones(
         raise HTTPException(status_code=401, detail=f"Invalid token: {e}")
 
     try:
-        sync = GarminSync(client_tokens=token_dir)
+        sync = GarminSyncService(client_tokens=token_dir)
         hr_zones = sync.get_user_hr_zones()
 
         if not hr_zones:
