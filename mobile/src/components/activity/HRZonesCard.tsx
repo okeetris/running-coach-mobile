@@ -50,9 +50,14 @@ export function HRZonesCard({ zones, avgHR }: HRZonesCardProps) {
           <View key={zone.zone} style={styles.zoneRow}>
             <View style={styles.zoneInfo}>
               <View style={[styles.zoneDot, { backgroundColor: zone.color }]} />
-              <Text style={styles.zoneName}>
-                Z{zone.zone} {zone.name}
-              </Text>
+              <View>
+                <Text style={styles.zoneName}>
+                  Z{zone.zone} {zone.name}
+                </Text>
+                <Text style={styles.zoneRange}>
+                  {zone.minHR}-{zone.maxHR} bpm
+                </Text>
+              </View>
             </View>
             <View style={styles.zoneStats}>
               <Text style={styles.zoneTime}>{formatZoneTime(zone.seconds)}</Text>
@@ -131,6 +136,11 @@ const styles = StyleSheet.create({
   zoneName: {
     fontSize: 13,
     color: "#49454F",
+  },
+  zoneRange: {
+    fontSize: 11,
+    color: "#79747E",
+    marginTop: 1,
   },
   zoneStats: {
     flexDirection: "row",

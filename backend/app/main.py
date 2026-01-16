@@ -9,7 +9,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import activities, auth
+from routers import activities, auth, user
 
 app = FastAPI(
     title="Running Coach API",
@@ -20,6 +20,7 @@ app = FastAPI(
 # Include routers
 app.include_router(auth.router)
 app.include_router(activities.router)
+app.include_router(user.router)
 
 # CORS configuration for local development
 app.add_middleware(

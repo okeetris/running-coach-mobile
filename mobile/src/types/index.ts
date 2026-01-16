@@ -158,3 +158,16 @@ export interface ActivityDetails extends ActivitySummary {
   cadenceGctCorrelation?: number; // r-squared value
   hrPaceDecoupling?: number; // percentage
 }
+
+// Heart rate zone from Garmin
+export interface GarminHRZone {
+  zone: number;
+  minHR: number;
+  maxHR: number;
+}
+
+// Heart rate zones response from API
+export interface HRZonesResponse {
+  maxHR: number;
+  zones: GarminHRZone[];
+}

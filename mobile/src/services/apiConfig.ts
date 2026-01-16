@@ -54,4 +54,5 @@ export const API_ENDPOINTS = {
   health: "/health",
   activities: "/activities",
   activityDetail: (id: string) => `/activities/${id}`,
+  hrZones: "/user/hr-zones",
 } as const;

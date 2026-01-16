@@ -4,7 +4,7 @@
  * Shows key metrics, grades, at-a-glance, and workout compliance.
  */
 
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   View,
   Text,
@@ -15,13 +15,13 @@ import {
   Platform,
   UIManager,
 } from "react-native";
-import { useMemo } from "react";
 import { useActivity } from "../../../src/contexts/ActivityContext";
 import { WorkoutComplianceCard } from "../../../src/components/activity/WorkoutComplianceCard";
 import { HRZonesCard } from "../../../src/components/activity/HRZonesCard";
 import { METRIC_INFO } from "../../../src/constants/metricInfo";
-import { calculateHRZones } from "../../../src/utils/hrZones";
-import type { Grade, GradeValue } from "../../../src/types";
+import { calculateHRZones, calculateHRZonesWithGarmin } from "../../../src/utils/hrZones";
+import { fetchHRZones } from "../../../src/services/api";
+import type { Grade, GradeValue, HRZonesResponse } from "../../../src/types";
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -149,17 +149,26 @@ function MetricCard({
 export default function SummaryTab() {
   const { activity } = useActivity();
   const [expandedMetric, setExpandedMetric] = useState<string | null>(null);
+  const [garminZones, setGarminZones] = useState<HRZonesResponse | null>(null);
 
   const toggleMetric = (metricKey: string) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setExpandedMetric(expandedMetric === metricKey ? null : metricKey);
   };
 
-  // Calculate HR zones from time series data
+  // Fetch Garmin HR zones on mount
+  useEffect(() => {
+    fetchHRZones().then(setGarminZones);
+  }, []);
+
+  // Calculate HR zones from time series data using Garmin zones if available
   const hrZones = useMemo(() => {
     if (!activity?.timeSeries) return null;
+    if (garminZones?.zones) {
+      return calculateHRZonesWithGarmin(activity.timeSeries, garminZones.zones);
+    }
     return calculateHRZones(activity.timeSeries);
-  }, [activity?.timeSeries]);
+  }, [activity?.timeSeries, garminZones]);
 
   if (!activity) return null;
 

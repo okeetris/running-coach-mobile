@@ -230,6 +230,54 @@ class GarminSyncService:
 
         return running_activities[:limit]
 
+    def get_user_hr_zones(self) -> Optional[dict]:
+        """
+        Fetch user's heart rate zones from Garmin.
+
+        Returns dict with maxHR and zones array, or None if unavailable.
+        """
+        client = self._get_client()
+        try:
+            # Try to get HR zones from user profile settings
+            profile = client.get_user_profile_settings()
+            if profile:
+                hr_zones_raw = profile.get("heartRateZones")
+                max_hr = profile.get("maxHR") or profile.get("maxHeartRate")
+
+                if hr_zones_raw and max_hr:
+                    # Garmin returns zones as list of zone objects
+                    zones = []
+                    for i, zone in enumerate(hr_zones_raw):
+                        zones.append({
+                            "zone": i + 1,
+                            "minHR": zone.get("low") or zone.get("zoneLowBoundary"),
+                            "maxHR": zone.get("high") or zone.get("zoneHighBoundary"),
+                        })
+                    return {"maxHR": max_hr, "zones": zones}
+
+            # Fallback: try get_heart_rates for today (includes zone info sometimes)
+            from datetime import date
+            hr_data = client.get_heart_rates(date.today().isoformat())
+            if hr_data:
+                # Heart rate zones might be in the response
+                zones_raw = hr_data.get("heartRateZones") or hr_data.get("hrZones")
+                max_hr = hr_data.get("maxHeartRate") or hr_data.get("userMaxHR")
+                if zones_raw and max_hr:
+                    zones = []
+                    for i, zone in enumerate(zones_raw):
+                        zones.append({
+                            "zone": i + 1,
+                            "minHR": zone.get("low") or zone.get("zoneLowBoundary"),
+                            "maxHR": zone.get("high") or zone.get("zoneHighBoundary"),
+                        })
+                    return {"maxHR": max_hr, "zones": zones}
+
+        except Exception as e:
+            print(f"Failed to get HR zones: {e}")
+            return None
+
+        return None
+
     def download_activity_fit(self, activity_id: int) -> Path:
         """Download FIT file for an activity if not already cached."""
         fit_path = self.fit_files_path / f"{activity_id}.fit"

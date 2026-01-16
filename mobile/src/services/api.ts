@@ -3,7 +3,7 @@ import {
   getAuthHeader,
   updateTokensIfRefreshed,
 } from "./authService";
-import type { ActivitySummary, ActivityDetails, HealthCheck } from "../types";
+import type { ActivitySummary, ActivityDetails, HealthCheck, HRZonesResponse } from "../types";
 
 /**
  * API Client for Running Coach Backend
@@ -132,6 +132,19 @@ export async function syncActivities(count: number = 10): Promise<SyncResult> {
  */
 export function isMFARequired(response: SyncResult): response is MFARequiredResponse {
   return "mfa_required" in response && response.mfa_required === true;
+}
+
+/**
+ * Fetch user's heart rate zones from Garmin
+ */
+export async function fetchHRZones(): Promise<HRZonesResponse | null> {
+  try {
+    return await fetchJson<HRZonesResponse>(API_ENDPOINTS.hrZones);
+  } catch (error) {
+    // Return null if zones not available (not an error condition)
+    console.log("HR zones not available:", (error as Error).message);
+    return null;
+  }
 }
 
 export { ApiError };
