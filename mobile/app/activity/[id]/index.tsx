@@ -15,9 +15,12 @@ import {
   Platform,
   UIManager,
 } from "react-native";
+import { useMemo } from "react";
 import { useActivity } from "../../../src/contexts/ActivityContext";
 import { WorkoutComplianceCard } from "../../../src/components/activity/WorkoutComplianceCard";
+import { HRZonesCard } from "../../../src/components/activity/HRZonesCard";
 import { METRIC_INFO } from "../../../src/constants/metricInfo";
+import { calculateHRZones } from "../../../src/utils/hrZones";
 import type { Grade, GradeValue } from "../../../src/types";
 
 // Enable LayoutAnimation on Android
@@ -152,6 +155,12 @@ export default function SummaryTab() {
     setExpandedMetric(expandedMetric === metricKey ? null : metricKey);
   };
 
+  // Calculate HR zones from time series data
+  const hrZones = useMemo(() => {
+    if (!activity?.timeSeries) return null;
+    return calculateHRZones(activity.timeSeries);
+  }, [activity?.timeSeries]);
+
   if (!activity) return null;
 
   const { summaryMetrics, coaching, workoutCompliance, complianceError } = activity;
@@ -223,6 +232,16 @@ export default function SummaryTab() {
           onPress={() => toggleMetric("verticalRatio")}
         />
       </View>
+
+      {/* Heart Rate Zones */}
+      {hrZones && (
+        <>
+          <Text style={styles.sectionTitle}>Heart Rate Zones</Text>
+          <View style={styles.hrZonesContainer}>
+            <HRZonesCard zones={hrZones} avgHR={summaryMetrics.avgHeartRate} />
+          </View>
+        </>
+      )}
 
       {/* Workout Compliance */}
       {workoutCompliance && (
@@ -302,6 +321,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 12,
+    marginBottom: 24,
+  },
+  hrZonesContainer: {
     marginBottom: 24,
   },
   metricCard: {
