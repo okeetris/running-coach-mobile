@@ -33,6 +33,7 @@ Atlas combines running analysis with practical training tools:
 - **Performance Grading** - Each metric graded A/B/C/D against optimal ranges
 - **Workout Compliance** - Compares completed runs against scheduled Garmin workouts
 - **Fatigue Analysis** - First half vs second half comparison to detect degradation
+- **Heart Rate Zones** - Displays Garmin's per-activity time-in-zone breakdown
 - **Coaching Insights** - Tailored feedback based on your metrics
 
 ### Toolkit
