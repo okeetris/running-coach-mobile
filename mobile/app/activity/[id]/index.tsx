@@ -15,7 +15,7 @@ import {
   UIManager,
 } from "react-native";
 import { useActivity } from "../../../src/contexts/ActivityContext";
-import { styles } from "./_index.styles";
+import { styles } from "../../../src/styles/app/activity-detail/index.styles";
 import { WorkoutComplianceCard } from "../../../src/components/activity/WorkoutComplianceCard";
 import { HRZonesCard } from "../../../src/components/activity/HRZonesCard";
 import { METRIC_INFO } from "../../../src/constants/metricInfo";

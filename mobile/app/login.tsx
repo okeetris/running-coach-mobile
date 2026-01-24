@@ -16,7 +16,7 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { useAuth } from "../src/contexts/AuthContext";
-import { styles } from "./_login.styles";
+import { styles } from "../src/styles/app/login.styles";
 
 export default function LoginScreen() {
   const { login, completeMFA, pendingMFA } = useAuth();

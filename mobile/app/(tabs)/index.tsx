@@ -8,7 +8,7 @@ import { View, Text, Pressable, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import { useActivities } from "../../src/hooks/useActivities";
 import type { ActivitySummary, Grade } from "../../src/types";
-import { styles } from "./_index.styles";
+import { styles } from "../../src/styles/app/tabs/index.styles";
 
 const gradeColors: Record<Grade, string> = {
   A: "#4CAF50",

@@ -8,7 +8,7 @@ import { View, Text, Pressable, ActivityIndicator } from "react-native";
 import { Tabs, useLocalSearchParams, useRouter } from "expo-router";
 import { useActivityDetails } from "../../../src/hooks/useActivities";
 import { ActivityProvider } from "../../../src/contexts/ActivityContext";
-import { styles } from "./_layout.styles";
+import { styles } from "../../../src/styles/app/activity-detail/layout.styles";
 
 function formatDate(dateString: string): string {
   if (!dateString) return "Unknown date";

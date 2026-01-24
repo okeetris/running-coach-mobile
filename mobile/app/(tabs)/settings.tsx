@@ -15,7 +15,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { styles } from "./_settings.styles";
+import { styles } from "../../src/styles/app/tabs/settings.styles";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
 import { useQueryClient } from "@tanstack/react-query";

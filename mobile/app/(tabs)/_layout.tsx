@@ -7,7 +7,7 @@
 import { Tabs } from "expo-router";
 import { View, Text } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { styles } from "./_layout.styles";
+import { styles } from "../../src/styles/app/tabs/layout.styles";
 
 interface TabIconProps {
   name: string;

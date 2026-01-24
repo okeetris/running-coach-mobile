@@ -16,7 +16,7 @@ import {
   ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { styles } from "./_pace.styles";
+import { styles } from "../../src/styles/app/tools/pace.styles";
 
 // Distance constants in km
 const DISTANCES = {

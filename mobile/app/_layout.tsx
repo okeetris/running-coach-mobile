@@ -10,7 +10,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider } from "../src/contexts/AuthContext";
-import { styles } from "./_layout.styles";
+import { styles } from "../src/styles/app/layout.styles";
 
 // Create QueryClient instance
 const queryClient = new QueryClient({
