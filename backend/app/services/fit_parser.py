@@ -300,25 +300,31 @@ def compute_fatigue_comparison(records: list[dict]) -> list[dict]:
 
     comparisons = []
 
-    for field, label in [
-        ("cadence", "Cadence"),
-        ("gct", "Ground Contact Time"),
-        ("verticalRatio", "Vertical Ratio"),
-        ("heartRate", "Heart Rate"),
-    ]:
+    # higher_is_better: True if increase = improved, False if decrease = improved
+    metrics_config = [
+        ("cadence", "Cadence", True),  # Higher cadence is better
+        ("gct", "Ground Contact Time", False),  # Lower GCT is better
+        ("verticalRatio", "Vertical Ratio", False),  # Lower VR is better
+        ("heartRate", "Heart Rate", False),  # Lower HR (less drift) is better
+    ]
+
+    for field, label, higher_is_better in metrics_config:
         first = avg(first_half, field)
         second = avg(second_half, field)
 
         if first and second:
             change = ((second - first) / first) * 100
+            # Determine direction based on metric type
+            if higher_is_better:
+                direction = "improved" if change > 2 else "degraded" if change < -2 else "stable"
+            else:
+                direction = "improved" if change < -2 else "degraded" if change > 2 else "stable"
             comparisons.append({
                 "metric": label,
                 "firstHalf": round(first, 1),
                 "secondHalf": round(second, 1),
                 "change": round(change, 1),
-                "changeDirection": (
-                    "improved" if change < -2 else "degraded" if change > 2 else "stable"
-                ),
+                "changeDirection": direction,
             })
 
     return comparisons
