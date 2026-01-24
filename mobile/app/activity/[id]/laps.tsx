@@ -7,7 +7,7 @@
 import { View, Text, ScrollView } from "react-native";
 import { useActivity } from "../../../src/contexts/ActivityContext";
 import type { Lap } from "../../../src/types";
-import { styles } from "./laps.styles";
+import { styles } from "./_laps.styles";
 
 function formatPace(secPerKm: number): string {
   if (!secPerKm || secPerKm === 0) return "--:--";

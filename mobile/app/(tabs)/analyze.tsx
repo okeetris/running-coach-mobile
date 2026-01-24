@@ -13,7 +13,7 @@ import {
   ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { styles } from "./analyze.styles";
+import { styles } from "./_analyze.styles";
 import {
   useActivities,
   useSyncActivities,

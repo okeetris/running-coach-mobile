@@ -7,7 +7,7 @@
 import { useMemo } from "react";
 import { View, Text, ScrollView } from "react-native";
 import { useActivity } from "../../../src/contexts/ActivityContext";
-import { styles } from "./charts.styles";
+import { styles } from "./_charts.styles";
 import { InteractiveRunChart } from "../../../src/components/charts/InteractiveRunChart";
 import { GCTBalanceChart } from "../../../src/components/charts/GCTBalanceChart";
 import { CadenceGCTScatter } from "../../../src/components/charts/CadenceGCTScatter";

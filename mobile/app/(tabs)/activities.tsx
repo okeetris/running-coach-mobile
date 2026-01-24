@@ -13,7 +13,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { styles } from "./activities.styles";
+import { styles } from "./_activities.styles";
 import { FlashList } from "@shopify/flash-list";
 import {
   useActivities,

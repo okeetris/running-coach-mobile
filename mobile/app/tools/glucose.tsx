@@ -15,7 +15,7 @@ import {
   Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { styles } from "./glucose.styles";
+import { styles } from "./_glucose.styles";
 
 const CONVERSION_FACTOR = 18.0182;
 

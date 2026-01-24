@@ -7,7 +7,7 @@
 import { View, Text, ScrollView } from "react-native";
 import { useActivity } from "../../../src/contexts/ActivityContext";
 import type { FatigueComparison } from "../../../src/types";
-import { styles } from "./coaching.styles";
+import { styles } from "./_coaching.styles";
 
 function WentWellItem({ text }: { text: string }) {
   return (
