@@ -36,16 +36,6 @@ const STORAGE_KEYS = {
 
 type Units = "metric" | "imperial";
 
-interface SyncResponse {
-  synced: number;
-  message: string;
-}
-
-interface MFAResponse {
-  mfa_required: boolean;
-  message: string;
-}
-
 export default function SettingsScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -54,7 +44,7 @@ export default function SettingsScreen() {
   const [darkMode, setDarkMode] = useState(false);
   const [lastSync, setLastSync] = useState<string | null>(null);
   const [isBackendConnected, setIsBackendConnected] = useState<boolean | null>(
-    null
+    null,
   );
   const [isSyncing, setIsSyncing] = useState(false);
   const [isCheckingConnection, setIsCheckingConnection] = useState(true);
@@ -110,7 +100,7 @@ export default function SettingsScreen() {
             await logout();
           },
         },
-      ]
+      ],
     );
   };
 
@@ -133,7 +123,7 @@ export default function SettingsScreen() {
         [
           { text: "Cancel", style: "cancel" },
           { text: "Connect", onPress: handleConnectGarmin },
-        ]
+        ],
       );
       return;
     }
@@ -149,7 +139,7 @@ export default function SettingsScreen() {
           [
             { text: "Cancel", style: "cancel" },
             { text: "Sign In", onPress: handleConnectGarmin },
-          ]
+          ],
         );
       } else {
         const now = new Date().toISOString();
@@ -160,7 +150,7 @@ export default function SettingsScreen() {
     } catch (error) {
       Alert.alert(
         "Sync Failed",
-        "Could not sync activities. Please try again."
+        "Could not sync activities. Please try again.",
       );
     } finally {
       setIsSyncing(false);
@@ -189,13 +179,16 @@ export default function SettingsScreen() {
               queryClient.removeQueries({ queryKey: ["activities"] });
               queryClient.removeQueries({ queryKey: ["activity"] });
 
-              Alert.alert("Cache Cleared", "Local cache has been cleared. Sync to fetch fresh data.");
+              Alert.alert(
+                "Cache Cleared",
+                "Local cache has been cleared. Sync to fetch fresh data.",
+              );
             } catch (error) {
               Alert.alert("Error", "Failed to clear cache.");
             }
           },
         },
-      ]
+      ],
     );
   };
 
