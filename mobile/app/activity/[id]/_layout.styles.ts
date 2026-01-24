@@ -99,8 +99,11 @@ export const styles = StyleSheet.create({
     borderBottomColor: "#E0E0E0",
   },
   tabLabel: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "600",
     textTransform: "none",
+  },
+  tabIcon: {
+    marginBottom: -4,
   },
 });

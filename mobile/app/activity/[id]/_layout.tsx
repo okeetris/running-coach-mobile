@@ -96,31 +96,43 @@ export default function ActivityDetailLayout() {
             tabBarActiveTintColor: "#1976D2",
             tabBarInactiveTintColor: "#757575",
             tabBarLabelStyle: styles.tabLabel,
-            tabBarIcon: () => null,
+            tabBarIconStyle: styles.tabIcon,
           }}
         >
           <Tabs.Screen
             name="index"
             options={{
               title: "Summary",
+              tabBarIcon: ({ focused }) => (
+                <Text style={{ fontSize: 18, opacity: focused ? 1 : 0.6 }}>📋</Text>
+              ),
             }}
           />
           <Tabs.Screen
             name="charts"
             options={{
               title: "Charts",
+              tabBarIcon: ({ focused }) => (
+                <Text style={{ fontSize: 18, opacity: focused ? 1 : 0.6 }}>📈</Text>
+              ),
             }}
           />
           <Tabs.Screen
             name="laps"
             options={{
               title: "Laps",
+              tabBarIcon: ({ focused }) => (
+                <Text style={{ fontSize: 18, opacity: focused ? 1 : 0.6 }}>⏱️</Text>
+              ),
             }}
           />
           <Tabs.Screen
             name="coaching"
             options={{
               title: "Coaching",
+              tabBarIcon: ({ focused }) => (
+                <Text style={{ fontSize: 18, opacity: focused ? 1 : 0.6 }}>💡</Text>
+              ),
             }}
           />
         </Tabs>
